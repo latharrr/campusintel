@@ -105,6 +105,11 @@ async function callWithFallback(systemPrompt, userMessage, maxTokens, logCtx = {
       }
 
       const json = await response.json();
+      
+      if (!json.choices || !json.choices[0]) {
+        throw new Error(`ModelsLab API Error: Unexpected Response Payload - ${JSON.stringify(json)}`);
+      }
+      
       return json.choices[0].message.content;
 
     } catch (error) {
