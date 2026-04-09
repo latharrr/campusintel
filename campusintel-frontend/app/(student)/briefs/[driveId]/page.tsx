@@ -84,6 +84,31 @@ export default function BriefPage() {
         </div>
       </div>
 
+      {/* TL;DR Card — always visible, above tabs */}
+      <div className="mb-6 rounded-2xl p-5 border-l-4 border-amber-500" style={{ background: 'rgba(245,158,11,0.05)', border: '1px solid rgba(245,158,11,0.2)', borderLeftWidth: '4px', borderLeftColor: '#f59e0b' }}>
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-[10px] uppercase tracking-widest font-bold text-amber-400">⚡ TL;DR — 68 hours left</span>
+          <span className="text-[10px] text-[#6b7280]">Read this first. Everything else is detail.</span>
+        </div>
+        <div className="space-y-2.5">
+          <div className="flex items-start gap-2 text-sm">
+            <span className="text-amber-400 font-bold flex-shrink-0 w-28">This week:</span>
+            <span className="text-[#c4c4d8]">Study System Design for 5h and DSA for 8h. Skip everything else.</span>
+          </div>
+          <div className="flex items-start gap-2 text-sm">
+            <span className="text-amber-400 font-bold flex-shrink-0 w-28">The one thing:</span>
+            <span className="text-[#c4c4d8]">System Design — Google asks it in 75% of LPU interviews. Your level is 15%. This is your only critical gap.</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <span className="text-amber-400 font-bold w-28">Your score:</span>
+            <span className="text-amber-400 font-semibold">48%</span>
+            <span className="text-[#6b7280] mx-1">→ Target</span>
+            <span className="text-emerald-400 font-semibold">65%+</span>
+            <span className="text-[#6b7280]">before the interview.</span>
+          </div>
+        </div>
+      </div>
+
       {/* Tabs */}
       <div className="flex gap-1 border-b border-[#2a2a3d] mb-8">
         {TABS.map(t => (

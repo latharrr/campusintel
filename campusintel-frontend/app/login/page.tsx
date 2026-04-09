@@ -9,7 +9,7 @@ export default function LoginPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    router.push('/dashboard');
+    router.push('/pulse');
   };
 
   return (

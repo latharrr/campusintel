@@ -3,11 +3,12 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const NAV_ITEMS = [
+  { icon: '🌐', label: 'Campus Pulse', href: '/pulse', badge: 'NEW' },
   { icon: '⊞', label: 'Dashboard', href: '/dashboard' },
   { icon: '📋', label: 'My Briefs', href: '/briefs' },
   { icon: '🏢', label: 'Drives', href: '/drives' },
-  { icon: '📊', label: 'My Progress', href: '/progress' },
-  { icon: '🤝', label: 'Debriefs', href: '/debrief', badge: true },
+  { icon: '🤝', label: 'Debriefs', href: '/debrief', redDot: true },
+  { icon: '📊', label: 'Progress', href: '/progress' },
 ];
 
 export default function Sidebar() {
@@ -43,11 +44,12 @@ export default function Sidebar() {
       {/* Nav items */}
       <nav className="flex-1 px-3 py-4 space-y-1">
         {NAV_ITEMS.map(item => {
-          const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+          const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href + '/'));
           return (
             <Link
               key={item.href}
               href={item.href}
+              id={`nav-${item.href.replace('/', '')}`}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all relative group ${
                 isActive
                   ? 'bg-indigo-500/10 text-indigo-300 border-l-2 border-indigo-500'
@@ -55,9 +57,14 @@ export default function Sidebar() {
               }`}
             >
               <span className="text-base leading-none">{item.icon}</span>
-              <span className="font-medium">{item.label}</span>
+              <span className="font-medium flex-1">{item.label}</span>
               {item.badge && (
-                <span className="ml-auto w-2 h-2 rounded-full bg-red-500 flex-shrink-0" />
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                  {item.badge}
+                </span>
+              )}
+              {item.redDot && (
+                <span className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0" />
               )}
             </Link>
           );
@@ -67,15 +74,17 @@ export default function Sidebar() {
       {/* Bottom actions */}
       <div className="px-3 py-4 border-t border-[#1e1e30] space-y-1">
         <Link href="/demo"
+          id="nav-demo"
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[#6b7280] hover:text-[#c4c4d8] hover:bg-white/5 transition-all">
           <span>🧠</span>
           <span className="font-medium">Agent Trace</span>
           <span className="ml-auto px-1.5 py-px text-[10px] rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">LIVE</span>
         </Link>
-        <button className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[#6b7280] hover:text-[#c4c4d8] hover:bg-white/5 transition-all">
-          <span>⚙</span>
-          <span className="font-medium">Settings</span>
-        </button>
+        <Link href="/tpc/dashboard"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[#6b7280] hover:text-[#c4c4d8] hover:bg-white/5 transition-all">
+          <span>🏫</span>
+          <span className="font-medium">TPC View</span>
+        </Link>
         <Link href="/login" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[#6b7280] hover:text-red-400 hover:bg-red-500/5 transition-all">
           <span>↩</span>
           <span className="font-medium">Sign Out</span>
