@@ -208,7 +208,8 @@ export default function DemoScreen() {
           {activeTab === 'TPC' && <TpcDashboard isDemoActive={!!sessionId} />}
         </div>
       </div>
-      <TourReopen />
+    </div>
+    <TourReopen />
     </TourProvider>
   );
 }

@@ -102,6 +102,98 @@ export default function LandingPage() {
         </div>
       </main>
 
+      {/* Massive App Preview Window */}
+      <section className="max-w-6xl mx-auto px-6 relative z-10 -mt-12 mb-32">
+        <div className="rounded-2xl border border-[#2a2a3d] bg-[#0a0a14]/80 backdrop-blur-xl shadow-[0_0_100px_rgba(79,70,229,0.15)] overflow-hidden">
+          {/* Mac window header */}
+          <div className="h-10 border-b border-[#1e1e30] flex items-center px-4 gap-2 bg-[#05050a]">
+            <div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/50" />
+            <div className="w-3 h-3 rounded-full bg-amber-500/20 border border-amber-500/50" />
+            <div className="w-3 h-3 rounded-full bg-emerald-500/20 border border-emerald-500/50" />
+            <div className="mx-auto text-[10px] text-[#4b4b6b] font-mono tracking-widest pl-6">AGENT_TRACE_LIVE</div>
+          </div>
+          {/* Mockup content split */}
+          <div className="grid grid-cols-1 md:grid-cols-2 h-[380px]">
+             {/* Left: Code / Trace */}
+             <div className="p-6 font-mono text-[11px] md:text-xs leading-relaxed text-[#6b7280] border-r border-[#1e1e30] flex flex-col justify-center">
+                <div className="text-indigo-400 mb-2">{`>`} INITIALIZING_AGENTIC_LOOP</div>
+                <div className="mb-4 text-[#8b8b9f]">Target: Rahul Sharma | Drive: Google | Context: Low Confidence</div>
+                <div className="text-emerald-400 mb-2">{`>`} DECISION_01: QUERY_LOCAL_DB</div>
+                <div className="pl-4 mb-4 border-l border-[#2a2a3d]">
+                  Found 8 debriefs.<br/>
+                  Extracting parameters...<br/>
+                  <span className="text-[#c4c4d8]">System_Design: 75% frequency</span>
+                </div>
+                <div className="text-amber-400 mb-2">{`>`} DECISION_02: ASSESS_READINESS</div>
+                <div className="pl-4 mb-4 border-l border-[#2a2a3d]">
+                  Score: 0.48<br/>
+                  Status: <span className="text-amber-400">CRITICAL_GAP</span>
+                </div>
+                <div className="text-indigo-400 animate-pulse">{`>`} GENERATING_INTERVENTION_BRIEF...</div>
+             </div>
+             {/* Right: UI mockup of Pulse */}
+             <div className="relative p-6 overflow-hidden bg-[#05050a] flex items-center justify-center">
+                <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(99,102,241,0.1)_0%,transparent_100%)]" />
+                <div className="relative w-full max-w-[280px] aspect-square rounded-full border border-[#2a2a3d] flex items-center justify-center">
+                  <div className="absolute inset-0 border border-indigo-500/30 rounded-full animate-[spin_10s_linear_infinite] border-dashed" />
+                  <div className="absolute inset-8 border border-emerald-500/20 rounded-full animate-[spin_15s_linear_infinite_reverse] border-dashed" />
+                  <div className="absolute w-16 h-16 bg-indigo-500/20 blur-xl rounded-full" />
+                  <div className="relative w-6 h-6 bg-indigo-500 rounded-full shadow-[0_0_30px_rgba(99,102,241,0.8)] z-10 flex items-center justify-center text-[8px] font-bold text-white">LPU</div>
+                  
+                  {/* Nodes */}
+                  <div className="absolute -top-2 left-1/4 w-3 h-3 bg-emerald-400 rounded-full shadow-[0_0_15px_#34d399] animate-pulse" />
+                  <div className="absolute bottom-1/4 -right-2 w-4 h-4 bg-amber-400 rounded-full shadow-[0_0_15px_#fbbf24] animate-pulse delay-75" />
+                  <div className="absolute top-1/2 -left-4 w-5 h-5 bg-blue-400 rounded-full shadow-[0_0_15px_#60a5fa] flex items-center justify-center text-[7px] font-bold text-black">GOOG</div>
+                  
+                  {/* Connecting lines */}
+                  <svg className="absolute inset-[-20%] w-[140%] h-[140%] -z-10 opacity-30">
+                     <path d="M 140 140 Q 60 40 100 0" fill="none" stroke="#4f46e5" strokeWidth="1" strokeDasharray="4" className="animate-[dash_20s_linear_infinite]" />
+                     <path d="M 140 140 Q 240 180 280 200" fill="none" stroke="#34d399" strokeWidth="1" strokeDasharray="4" className="animate-[dash_15s_linear_infinite]" />
+                  </svg>
+                </div>
+             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* The Competitor Takedown */}
+      <section className="max-w-5xl mx-auto px-6 py-10 relative z-10 mb-20 border-b border-[#1e1e30] pb-32">
+        <div className="text-center mb-16">
+          <div className="text-indigo-400 text-sm font-mono tracking-widest uppercase mb-3">The Paradigm Shift</div>
+          <h2 className="text-3xl md:text-5xl font-display font-bold text-white mb-6">Why Chatbots Fail.</h2>
+          <p className="text-[#8b8b9f] text-lg max-w-2xl mx-auto">The old model relies on students knowing exactly what to ask. But if a student doesn't know they have a critical gap in DBMS, they will never ask for help. We don't wait for prompts.</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* Old Way */}
+          <div className="p-8 rounded-2xl border border-red-500/20 bg-red-500/[0.02]">
+            <div className="text-red-400 text-lg font-display font-bold mb-6 flex items-center gap-3">
+              <span className="flex items-center justify-center w-8 h-8 rounded-full bg-red-500/10 border border-red-500/20">✕</span> 
+              Generic AI Platforms
+            </div>
+            <ul className="space-y-5 text-[#8b8b9f] text-sm">
+              <li className="flex items-start gap-4"><span className="mt-1 text-[#4b4b6b] font-mono">01</span> Waits for the student to manually query for help.</li>
+              <li className="flex items-start gap-4"><span className="mt-1 text-[#4b4b6b] font-mono">02</span> Provides generic, stale advice compiled from old internet lists.</li>
+              <li className="flex items-start gap-4"><span className="mt-1 text-[#4b4b6b] font-mono">03</span> Placement Cells only discover failure rates after the drive ends.</li>
+              <li className="flex items-start gap-4"><span className="mt-1 text-[#4b4b6b] font-mono">04</span> Zero memory. Students make the same mistakes repeatedly.</li>
+            </ul>
+          </div>
+          {/* CampusIntel Way */}
+          <div className="p-8 rounded-2xl border border-emerald-500/30 bg-[#0a0a14] relative overflow-hidden ring-1 ring-emerald-500/10 shadow-[0_0_30px_rgba(52,211,153,0.05)]">
+            <div className="absolute top-[-50%] right-[-50%] w-full h-full bg-emerald-500/10 blur-[100px] rounded-full" />
+            <div className="text-emerald-400 text-lg font-display font-bold mb-6 flex items-center gap-3 relative z-10">
+              <span className="flex items-center justify-center w-8 h-8 rounded-full bg-emerald-500/20 border border-emerald-500/30 text-white shadow-[0_0_15px_rgba(52,211,153,0.4)]">✓</span> 
+              Agentic Intelligence
+            </div>
+            <ul className="space-y-5 text-[#c4c4d8] text-sm relative z-10">
+              <li className="flex items-start gap-4"><span className="mt-1 text-emerald-500">→</span> Proactively runs gap analysis in the background automatically.</li>
+              <li className="flex items-start gap-4"><span className="mt-1 text-emerald-500">→</span> Replaces stale logic with live peer debriefs from your specific campus.</li>
+              <li className="flex items-start gap-4"><span className="mt-1 text-emerald-500">→</span> Alerts TPC mathematically 68 hours before failure occurs.</li>
+              <li className="flex items-start gap-4"><span className="mt-1 text-emerald-500">→</span> Epsilon-Greedy RL mathematically penalizes strategies that lead to rejection.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
       {/* Value Bento Box */}
       <section className="max-w-6xl mx-auto px-6 py-20 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
