@@ -1,9 +1,9 @@
 const supabase = require('../config/supabase');
 
 const DEV_MODE = process.env.CLAUDE_MOCK === 'true';
-const MODELSLAB_API_KEY = process.env.MODELSLAB_API_KEY || process.env.NVIDIA_API_KEY || process.env.ANTHROPIC_API_KEY; 
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.MODELSLAB_API_KEY || process.env.NVIDIA_API_KEY; 
 const TIMEOUT_MS = 45000;
-const MODEL = 'deepseek-ai/DeepSeek-V3'; // ModelsLab Serverless DeepSeek V3
+const MODEL = 'gemini-1.5-flash'; // Google Gemini directly from AI Studio
 
 // ── Mock Data (DEV_MODE=true → zero tokens burned) ────────────
 const MOCK_BRIEF = {
@@ -80,11 +80,12 @@ async function callWithFallback(systemPrompt, userMessage, maxTokens, logCtx = {
     const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
     try {
-      const response = await fetch('https://modelslab.com/api/v7/llm/chat/completions', {
+      // Using Google Gemini's official OpenAI Compatibility Endpoint
+      const response = await fetch('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${MODELSLAB_API_KEY}`
+          'Authorization': `Bearer ${GEMINI_API_KEY}`
         },
         body: JSON.stringify({
           model: MODEL,
@@ -107,7 +108,7 @@ async function callWithFallback(systemPrompt, userMessage, maxTokens, logCtx = {
       const json = await response.json();
       
       if (!json.choices || !json.choices[0]) {
-        throw new Error(`ModelsLab API Error: Unexpected Response Payload - ${JSON.stringify(json)}`);
+        throw new Error(`Gemini API Error: Unexpected Response Payload - ${JSON.stringify(json)}`);
       }
       
       return json.choices[0].message.content;
