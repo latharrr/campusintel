@@ -15,7 +15,8 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions)); // Handle ALL preflight requests
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(tenantMiddleware);
 
 // ── Health check ──────────────────────────────────────────────
