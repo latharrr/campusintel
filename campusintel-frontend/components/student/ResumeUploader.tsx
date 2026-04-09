@@ -35,8 +35,17 @@ export default function ResumeUploader({
     setErrorMsg('');
 
     try {
-      const buffer = await file.arrayBuffer();
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+      // FileReader handles large files reliably without stack overflow
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          resolve(result.split(',')[1]); // strip "data:application/pdf;base64," prefix
+        };
+        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.readAsDataURL(file);
+      });
+
       const res = await api.uploadResume(studentId, base64);
 
       if (res.success) {
@@ -47,8 +56,8 @@ export default function ResumeUploader({
         setErrorMsg(res.error || 'Upload failed. Try again.');
         setStatus('error');
       }
-    } catch (err) {
-      setErrorMsg('Could not reach server. Make sure the backend is running.');
+    } catch (err: any) {
+      setErrorMsg(`Error: ${err?.message || String(err)}`);
       setStatus('error');
     }
   };
