@@ -23,7 +23,10 @@ export default function DebriefPage() {
   const [selected, setSelected] = useState<string[]>([]);
   const [outcome, setOutcome] = useState('');
   const [text, setText] = useState('');
+  const [company, setCompany] = useState('');
+  const [role, setRole] = useState('');
   const [submitted, setSubmitted] = useState(false);
+  const [localDebriefs, setLocalDebriefs] = useState(PAST_DEBRIEFS);
 
   const tags = ['#Arrays', '#DP', '#System Design', '#SQL', '#Behavioral', '#OS', '#Graphs', '#Trees', '#DBMS'];
 
@@ -52,12 +55,31 @@ export default function DebriefPage() {
           <div className="w-[520px] bg-[#0f0f1a] border border-[#2a2a3d] rounded-2xl p-8 shadow-2xl">
             {/* Progress */}
             <div className="flex gap-1.5 mb-6">
-              {[1, 2, 3].map(s => (
+              {[1, 2, 3, 4].map(s => (
                 <div key={s} className={`flex-1 h-1 rounded-full transition-all ${step >= s ? 'bg-indigo-500' : 'bg-[#2a2a3d]'}`} />
               ))}
             </div>
 
             {step === 1 && (
+              <>
+                <h2 className="font-display text-xl text-[#e8e6f8] mb-5">Where did you interview?</h2>
+                <div className="space-y-4">
+                  <div>
+                    <div className="text-xs text-[#6b7280] mb-2">Company Name</div>
+                    <input type="text" value={company} onChange={e => setCompany(e.target.value)} placeholder="e.g. Google, Atlassian, Microsoft" className="w-full bg-[#0a0a14] border border-[#2a2a3d] rounded-xl p-3 text-sm text-[#e8e6f8] outline-none focus:border-indigo-500/60" />
+                  </div>
+                  <div>
+                    <div className="text-xs text-[#6b7280] mb-2">Position / Role</div>
+                    <input type="text" value={role} onChange={e => setRole(e.target.value)} placeholder="e.g. SDE-1, Data Analyst Intern" className="w-full bg-[#0a0a14] border border-[#2a2a3d] rounded-xl p-3 text-sm text-[#e8e6f8] outline-none focus:border-indigo-500/60" />
+                  </div>
+                  <button onClick={() => setStep(2)} disabled={!company || !role} className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-xl text-sm font-semibold transition mt-2">
+                    Next →
+                  </button>
+                </div>
+              </>
+            )}
+
+            {step === 2 && (
               <>
                 <h2 className="font-display text-xl text-[#e8e6f8] mb-5">Which round was this?</h2>
                 <div className="space-y-4">
@@ -81,15 +103,15 @@ export default function DebriefPage() {
                       ))}
                     </div>
                   </div>
-                  <button onClick={() => setStep(2)}
-                    className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-semibold transition">
+                  <button onClick={() => setStep(3)} disabled={!outcome}
+                    className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-xl text-sm font-semibold transition">
                     Next →
                   </button>
                 </div>
               </>
             )}
 
-            {step === 2 && (
+            {step === 3 && (
               <>
                 <h2 className="font-display text-xl text-[#e8e6f8] mb-5">What happened inside?</h2>
                 <div className="space-y-4">
@@ -112,12 +134,12 @@ export default function DebriefPage() {
                         }`}>{t}</button>
                     ))}
                   </div>
-                  <button onClick={() => setStep(3)} className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-semibold transition">Next →</button>
+                  <button onClick={() => setStep(4)} disabled={!text} className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-xl text-sm font-semibold transition">Next →</button>
                 </div>
               </>
             )}
 
-            {step === 3 && (
+            {step === 4 && (
               <>
                 <h2 className="font-display text-xl text-[#e8e6f8] mb-5">What made the difference?</h2>
                 <div className="space-y-4">
@@ -125,7 +147,10 @@ export default function DebriefPage() {
                     className="w-full bg-[#0a0a14] border border-[#2a2a3d] focus:border-emerald-500/60 rounded-xl p-3 text-sm text-[#e8e6f8] placeholder:text-[#4b4b6b] outline-none resize-none transition" />
                   <textarea rows={3} placeholder="What hurt you (if rejected)..."
                     className="w-full bg-[#0a0a14] border border-[#2a2a3d] focus:border-amber-500/60 rounded-xl p-3 text-sm text-[#e8e6f8] placeholder:text-[#4b4b6b] outline-none resize-none transition" />
-                  <button onClick={() => setSubmitted(true)} className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-semibold transition">
+                  <button onClick={() => {
+                    setLocalDebriefs([{ company: company || 'Unknown', round: role || 'Round', outcome: outcome || 'Waiting', tags: selected.slice(0,3), date: 'Just now' }, ...localDebriefs]);
+                    setSubmitted(true);
+                  }} className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-semibold transition">
                     Submit Debrief →
                   </button>
                 </div>
@@ -159,7 +184,7 @@ export default function DebriefPage() {
       {/* Past debriefs */}
       <div className="mb-8">
         <h2 className="font-display text-xl text-[#e8e6f8] mb-4">Your Debriefs</h2>
-        {PAST_DEBRIEFS.map((d, i) => (
+        {localDebriefs.map((d, i) => (
           <div key={i} className="card-dark rounded-xl p-4 flex items-center gap-4">
             <div className="flex-1">
               <div className="font-medium text-[#e8e6f8]">{d.company} · {d.round}</div>
