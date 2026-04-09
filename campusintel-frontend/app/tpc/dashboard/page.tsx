@@ -1,4 +1,5 @@
 'use client';
+import { useState } from 'react';
 
 const STUDENTS = [
   { name: 'Rahul Sharma', branch: 'CSE', cgpa: 7.8, company: 'Google', score: 0.48, state: 'ASSESSED' },
