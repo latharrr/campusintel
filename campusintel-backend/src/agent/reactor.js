@@ -101,8 +101,8 @@ async function selectStrategy(collegeId, companyId, profileType) {
 }
 
 // ── Main Agent Loop ────────────────────────────────────────────────────────
-async function runAgentLoop(studentId, driveId) {
-  const sessionId = uuidv4();
+async function runAgentLoop(studentId, driveId, forceSessionId = null) {
+  const sessionId = forceSessionId || uuidv4();
   console.log(`\n[Reactor] Starting agent loop | session=${sessionId} | student=${studentId}`);
 
   let stepNum = 0;

@@ -4,17 +4,20 @@ const supabase = require('../config/supabase');
 const { runAgentLoop } = require('../agent/reactor');
 const { scanAndQueuePendingStudents } = require('../agent/scanner.job');
 
+const { v4: uuidv4 } = require('uuid');
+
 // ── POST /api/agent/trigger-demo ──────────────────────────────
 // Primary demo: Rahul (low confidence, scrape fallback path)
 router.post('/trigger-demo', async (req, res) => {
   try {
     const studentId = process.env.DEMO_STUDENT_ID || 'demo-student-rahul';
     const driveId = process.env.DEMO_DRIVE_ID || 'demo-drive-google';
-    const result = await Promise.race([
-      runAgentLoop(studentId, driveId),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('Agent timeout')), 60000)),
-    ]);
-    res.json({ status: 'triggered', ...result });
+    const forceSessionId = uuidv4();
+    
+    // Fire and forget the heavy Agent loop so the frontend gets the session instantly
+    runAgentLoop(studentId, driveId, forceSessionId).catch(console.error);
+
+    res.json({ status: 'triggered', sessionId: forceSessionId });
   } catch (err) {
     console.error('[Route] trigger-demo failed:', err.message);
     res.status(500).json({ error: err.message });
