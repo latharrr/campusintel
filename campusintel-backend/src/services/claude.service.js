@@ -2,7 +2,7 @@ const supabase = require('../config/supabase');
 
 const DEV_MODE = process.env.CLAUDE_MOCK === 'true';
 const NVIDIA_API_KEY = process.env.NVIDIA_API_KEY || process.env.ANTHROPIC_API_KEY; // Fallback to old key name if they haven't renamed it
-const TIMEOUT_MS = 10000;
+const TIMEOUT_MS = 45000;
 const MODEL = 'meta/llama-3.1-70b-instruct'; // NVIDIA NIM standard accessible model
 
 // ── Mock Data (DEV_MODE=true → zero tokens burned) ────────────
