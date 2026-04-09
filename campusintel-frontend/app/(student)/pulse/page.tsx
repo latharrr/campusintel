@@ -8,22 +8,27 @@ const PULSE_TOUR = [
   {
     title: 'This is the CampusIntel network',
     body: 'Every node is real. LPU (the glowing center) is your college. Company nodes orbit it — sized by how many debriefs exist. Student nodes are the people who shared their interview experiences.',
+    highlight: 'tour-pulse-canvas'
   },
   {
     title: 'What the arcs mean',
     body: 'Indigo arcs = a student just shared an interview debrief. Green arcs = the AI just delivered a personalized brief to a student. Watch the live activity feed on the right — every line is a real event.',
+    highlight: 'tour-pulse-feed'
   },
   {
     title: 'Why Google’s node is bigger than Amazon’s',
     body: 'Node size = number of debriefs. Google has 10 verified LPU debriefs. Amazon has 3. More debriefs = bigger node = higher confidence in the intelligence CampusIntel delivers for that company.',
+    highlight: 'tour-pulse-canvas'
   },
   {
     title: 'The numbers at the bottom',
     body: 'These update in real time via Supabase Realtime. When a student submits a debrief right now, the debriefs counter increments live. When a brief is generated, the students helped counter goes up.',
+    highlight: 'tour-pulse-stats'
   },
   {
     title: 'The complete loop',
     body: 'Student shares debrief → arc flows to company node → company node processes intelligence → arc flows to next student → that student gets a better brief. This is the network effect made visible.',
+    highlight: 'tour-pulse-canvas'
   },
 ];
 
@@ -397,12 +402,12 @@ export default function CampusPulsePage() {
       {/* Main canvas + activity feed */}
       <div className="flex flex-1 relative z-10 px-4 pb-4 gap-4">
         {/* D3 Canvas */}
-        <div className="flex-1 relative rounded-2xl border border-[#2a2a3d] overflow-hidden" style={{ background: '#09090f' }}>
+        <div id="tour-pulse-canvas" className="flex-1 relative rounded-2xl border border-[#2a2a3d] overflow-hidden" style={{ background: '#09090f' }}>
           <svg ref={svgRef} className="w-full h-full" style={{ minHeight: '480px' }} />
         </div>
 
         {/* Activity Feed */}
-        <div className="w-64 flex flex-col gap-3">
+        <div id="tour-pulse-feed" className="w-64 flex flex-col gap-3 rounded-2xl p-1">
           <div className="card-dark rounded-xl p-4 flex-1">
             <div className="text-[10px] uppercase tracking-widest text-[#6b7280] font-semibold mb-3">Live Activity</div>
             <div className="space-y-3">
@@ -429,7 +434,7 @@ export default function CampusPulsePage() {
       </div>
 
       {/* Bottom stats bar */}
-      <div className="relative z-10 flex items-center justify-center gap-8 py-4 border-t border-[#1e1e30]">
+      <div id="tour-pulse-stats" className="relative z-10 flex items-center justify-center gap-8 py-4 border-t border-[#1e1e30] rounded-xl">
         {[
           { dot: '#6366f1', label: `${stats.debriefs} debriefs shared in last hour` },
           { dot: '#34d399', label: `${stats.briefs} briefs delivered today` },

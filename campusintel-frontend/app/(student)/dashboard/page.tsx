@@ -50,14 +50,17 @@ const DASHBOARD_TOUR = [
   {
     title: 'Your Placement Readiness Score',
     body: 'This number (0.48) was calculated by the AI — it compared your skill levels against what Google actually tests at LPU, based on 8 verified debriefs from your campus. You didn\'t enter anything. It figured this out automatically.',
+    highlight: 'tour-readiness-score'
   },
   {
     title: 'Why is System Design CRITICAL?',
     body: 'Google tests System Design in 75% of LPU interviews. Your current level is 15%. That gap is flagged CRITICAL because it\'s both high-frequency and high-risk. DSA is MODERATE — important but less urgent.',
+    highlight: 'tour-skills-breakdown'
   },
   {
     title: 'What the AI is doing for you',
     body: 'This feed shows 4 actions the agent took — without you asking. It checked debriefs, calculated your score, generated a brief, and alerted TPC about 5 students with the same gap. All autonomous.',
+    highlight: 'tour-agent-activity'
   },
   {
     title: 'The debrief popup',
@@ -66,6 +69,7 @@ const DASHBOARD_TOUR = [
   {
     title: 'Navigate to Campus Pulse →',
     body: 'Click 🌐 Campus Pulse in the sidebar to see the living network — every student, every company, every debrief, flowing in real time. That\'s the best place to understand how CampusIntel works at a glance.',
+    highlight: 'nav-pulse'
   },
 ];
 
@@ -182,7 +186,7 @@ export default function DashboardPage() {
               </span>
             </div>
 
-            <div className="flex items-end gap-6 mb-6">
+            <div id="tour-readiness-score" className="flex items-end gap-6 mb-6 rounded-2xl p-2">
               <ReadinessRing score={0.48} />
               <div>
                 <div className="font-display text-5xl text-amber-400 leading-none">0.48</div>
@@ -190,7 +194,7 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="space-y-2.5">
+            <div id="tour-skills-breakdown" className="space-y-2.5 rounded-xl p-2">
               {SKILLS.map(skill => (
                 <div key={skill.name} className="flex items-center gap-3">
                   <span className="text-xs text-[#9b9bbb] w-24 flex-shrink-0">{skill.name}</span>
@@ -253,7 +257,7 @@ export default function DashboardPage() {
         {/* Second row */}
         <div className="grid grid-cols-[60%_1fr] gap-6">
           {/* Agent Activity Feed */}
-          <div className="card-dark rounded-2xl p-6">
+          <div id="tour-agent-activity" className="card-dark rounded-2xl p-6">
             <div className="text-[11px] uppercase tracking-widest text-[#6b7280] font-semibold mb-5">What the AI is doing for you</div>
             <div className="space-y-4">
               {RECENT_AGENT_ACTIONS.map((a, i) => (

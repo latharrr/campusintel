@@ -11,26 +11,32 @@ const DEMO_TOUR = [
   {
     title: 'What makes this an “agent”?',
     body: 'An agent observes context, makes decisions, calls tools, and takes actions — without a human initiating each step. Click Standard Demo and watch it make 7 independent decisions in sequence.',
+    highlight: 'tour-demo-scenario'
   },
   {
     title: 'Decision 1–3: Data sourcing',
     body: 'The agent decides whether to use local LPU debriefs, pull from a global pool, or scrape the web — based on whether local data crosses a minimum threshold. That’s dynamic tool selection, not a hardcoded pipeline.',
+    highlight: 'tour-demo-trace'
   },
   {
     title: 'Decision 4: Strategy selection',
     body: 'The agent queries a strategy_weights table and picks the intervention type with the highest historical win rate for this student’s profile. BRIEF_ASSESS has a 0.67 win rate — that’s 67% of similar students got selected.',
+    highlight: 'tour-demo-trace'
   },
   {
     title: 'Plain English vs Technical view',
     body: 'Toggle between views in the top-right of the trace. Plain English is for non-technical judges. Technical shows the real step names and decision basis from the database. Both are reading the same live data.',
+    highlight: 'tour-demo-trace'
   },
   {
     title: 'The ↩ FALLBACK badge',
     body: 'If you see this on the GENERATE_BRIEF step, it means Gemini API was busy and the system used a pre-built backup brief automatically. The demo never hangs. This is intentional, not a bug.',
+    highlight: 'tour-demo-trace'
   },
   {
     title: 'Switch to Generated Brief tab',
     body: 'Click “Generated Brief” above to see what the agent produced for Rahul — topic breakdown, skill gaps, 3-day prep plan, and a practice question. All generated autonomously from the 8 LPU debriefs.',
+    highlight: 'tour-demo-tabs'
   },
 ];
 
@@ -124,15 +130,14 @@ export default function DemoScreen() {
         
         {/* Header containing the scenario triggers */}
         <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gray-900 border border-gray-800 p-6 rounded-2xl shadow-xl">
+        <header id="tour-demo-scenario" className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gray-900 border border-gray-800 p-6 rounded-2xl shadow-xl">
           <div>
-            <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-cyan-400">CampusIntel</h1>
-            <p className="text-gray-400 mt-1">Autonomous Placement Intelligence Engine</p>
-            <div className="flex items-center gap-2 mt-2 text-xs">
-              <span className={`flex items-center gap-1 ${wsConnected ? 'text-emerald-400' : 'text-amber-400'}`}>
-                <span className={`h-2 w-2 rounded-full ${wsConnected ? 'bg-emerald-500' : 'bg-amber-500 animate-pulse'}`}></span>
-                {wsConnected ? 'Live Connection Active' : 'Polling Fallback Active'}
-              </span>
-            </div>
+            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+              <span className="text-3xl">🧠</span> Agent Trace Demo
+            </h1>
+            <p className="text-gray-400 text-sm mt-1">
+              Select a scenario to watch the autonomous preparation loop in real time.
+            </p>
           </div>
           
           <div className="flex flex-wrap gap-3">
@@ -181,7 +186,7 @@ export default function DemoScreen() {
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex gap-2 border-b border-gray-800 pb-px">
+        <div id="tour-demo-tabs" className="flex gap-2 border-b border-gray-800 pb-px pt-2 px-2 rounded-t-xl bg-gray-900/20">
           {['TRACE', 'BRIEF', 'TPC'].map((tab) => (
             <button
               key={tab}
@@ -198,7 +203,7 @@ export default function DemoScreen() {
         </div>
 
         {/* Content Area */}
-        <div className="mt-6">
+        <div id="tour-demo-trace" className="mt-6 rounded-xl p-1">
           {activeTab === 'TRACE' && <ReasoningTrace logs={logs} isActive={isRunning} />}
           {activeTab === 'BRIEF' && <PrepBrief logs={logs} />}
           {activeTab === 'TPC' && <TpcDashboard isDemoActive={!!sessionId} />}

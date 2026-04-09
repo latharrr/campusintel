@@ -87,6 +87,33 @@ function TourTooltip({ step, total, current, onNext, onPrev, onClose }: {
   onPrev: () => void;
   onClose: () => void;
 }) {
+  // Handle element highlighting
+  useEffect(() => {
+    if (!current?.highlight) return;
+    
+    // Slight delay to allow render
+    const t = setTimeout(() => {
+      const el = document.getElementById(current.highlight!);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Add a glow ring
+        const originalBoxShadow = el.style.boxShadow;
+        const originalTransition = el.style.transition;
+        
+        el.style.transition = 'box-shadow 0.3s ease-in-out';
+        el.style.boxShadow = '0 0 0 4px rgba(99,102,241,0.5), 0 0 40px rgba(99,102,241,0.3)';
+        
+        // Remove glow when step changes or closes
+        return () => {
+          el.style.boxShadow = originalBoxShadow;
+          el.style.transition = originalTransition;
+        };
+      }
+    }, 100);
+    
+    return () => clearTimeout(t);
+  }, [current, step]);
+
   return (
     <div
       className="fixed bottom-6 right-6 z-[100] w-[340px] shadow-2xl animate-slide-up"
@@ -97,6 +124,24 @@ function TourTooltip({ step, total, current, onNext, onPrev, onClose }: {
         boxShadow: '0 0 40px rgba(99,102,241,0.15), 0 20px 40px rgba(0,0,0,0.6)',
       }}
     >
+      {/* Floating AI Buddy Companion */}
+      <div className="absolute -top-12 -left-8 w-16 h-16 animate-bounce" style={{ animationDuration: '3s' }}>
+        <div className="relative w-full h-full">
+          {/* Main Bot Body */}
+          <div className="absolute inset-2 bg-indigo-900 rounded-2xl border-2 border-indigo-400 shadow-[0_0_15px_rgba(99,102,241,0.6)] flex items-center justify-center overflow-hidden">
+            {/* Visor */}
+            <div className="absolute top-2 w-8 h-3 bg-black rounded-sm overflow-hidden flex items-center justify-center">
+              <div className="w-6 h-1 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
+            </div>
+          </div>
+          {/* Antenna */}
+          <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-1 h-3 bg-indigo-400" />
+          <div className="absolute -top-2 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+          {/* Floating aura */}
+          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-8 h-2 bg-indigo-500/30 blur-md rounded-full" />
+        </div>
+      </div>
+
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-3 border-b border-[#2a2a3d]">
         <div className="flex items-center gap-2">
