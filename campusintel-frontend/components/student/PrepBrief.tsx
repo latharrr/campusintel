@@ -34,9 +34,21 @@ const SEVERITY_COLOR: Record<string, string> = {
 };
 
 export default function PrepBrief({ logs }: Props) {
-  const briefLog = logs.find(l => l.step_name === 'GENERATE_BRIEF');
+  const briefLog = logs.find(l => l.step_name === 'GENERATE_BRIEF' || l.step_name === 'FALLBACK_TRIGGERED');
   
-  // Use live data if available, otherwise always show the rich mock brief
+  if (!briefLog && logs.length === 0) {
+    return (
+      <div className="bg-[#0f0f1a] border border-[#2a2a3d] rounded-2xl p-6 h-[500px] flex flex-col items-center justify-center text-center">
+        <div className="text-4xl mb-4 opacity-50">🤖</div>
+        <h3 className="text-lg font-semibold text-[#c4c4d8]">No Intelligence Generated Yet</h3>
+        <p className="text-sm text-[#6b7280] max-w-sm mt-2">
+          Run the Agent Trace on the first tab. Once the agent hits the GENERATE_BRIEF step, the personalized strategy will appear here automatically.
+        </p>
+      </div>
+    );
+  }
+
+  // Use live data if available, otherwise always show the rich mock brief as fallback
   const rawBrief = briefLog?.output as any;
   const brief = (rawBrief?.topics?.length ? rawBrief : null) || MOCK_BRIEF;
   const isLive = !!(rawBrief?.topics?.length);

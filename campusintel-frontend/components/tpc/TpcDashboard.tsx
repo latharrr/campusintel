@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 
-export default function TpcDashboard({ isDemoActive }: { isDemoActive: boolean }) {
+export default function TpcDashboard({ isDemoActive, contextName = 'Rahul' }: { isDemoActive: boolean, contextName?: string }) {
   const [weights, setWeights] = useState<any[]>([]);
   const [recording, setRecording] = useState(false);
 
@@ -35,7 +35,7 @@ export default function TpcDashboard({ isDemoActive }: { isDemoActive: boolean }
       </div>
 
       <div className="mb-8">
-        <h3 className="text-sm font-semibold text-gray-400 mb-3 uppercase tracking-wider">Record Outcome (Rahul)</h3>
+        <h3 className="text-sm font-semibold text-gray-400 mb-3 uppercase tracking-wider">Record Outcome ({contextName})</h3>
         <div className="flex gap-3">
           <button 
             onClick={() => handleOutcome('selected')}

@@ -205,7 +205,7 @@ export default function DemoScreen() {
         <div id="tour-demo-trace" className="mt-6 rounded-xl p-1">
           {activeTab === 'TRACE' && <ReasoningTrace logs={logs} isActive={isRunning} />}
           {activeTab === 'BRIEF' && <PrepBrief logs={logs} />}
-          {activeTab === 'TPC' && <TpcDashboard isDemoActive={!!sessionId} />}
+          {activeTab === 'TPC' && <TpcDashboard isDemoActive={!!sessionId} contextName={scenario === 'HIGH_CONF' ? 'Priya Mehta' : 'Rahul Sharma'} />}
         </div>
       </div>
     </div>
