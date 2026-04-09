@@ -3,7 +3,7 @@ const supabase = require('../config/supabase');
 const DEV_MODE = process.env.CLAUDE_MOCK === 'true';
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.MODELSLAB_API_KEY || process.env.NVIDIA_API_KEY; 
 const TIMEOUT_MS = 45000;
-const MODEL = 'gemini-1.5-flash'; // Google Gemini directly from AI Studio
+const MODEL = 'gemini-2.5-flash'; // Google Gemini directly from AI Studio
 
 // ── Mock Data (DEV_MODE=true → zero tokens burned) ────────────
 const MOCK_BRIEF = {
@@ -81,7 +81,7 @@ async function callWithFallback(systemPrompt, userMessage, maxTokens, logCtx = {
 
     try {
       // Using Google Gemini Native REST API
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/${MODEL}:generateContent?key=${GEMINI_API_KEY}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
