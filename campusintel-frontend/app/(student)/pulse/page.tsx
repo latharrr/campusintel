@@ -2,6 +2,31 @@
 import { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { supabase } from '@/lib/supabase';
+import { TourProvider, TourReopen } from '@/components/tour/TourProvider';
+
+const PULSE_TOUR = [
+  {
+    title: 'This is the CampusIntel network',
+    body: 'Every node is real. LPU (the glowing center) is your college. Company nodes orbit it — sized by how many debriefs exist. Student nodes are the people who shared their interview experiences.',
+  },
+  {
+    title: 'What the arcs mean',
+    body: 'Indigo arcs = a student just shared an interview debrief. Green arcs = the AI just delivered a personalized brief to a student. Watch the live activity feed on the right — every line is a real event.',
+  },
+  {
+    title: 'Why Google’s node is bigger than Amazon’s',
+    body: 'Node size = number of debriefs. Google has 10 verified LPU debriefs. Amazon has 3. More debriefs = bigger node = higher confidence in the intelligence CampusIntel delivers for that company.',
+  },
+  {
+    title: 'The numbers at the bottom',
+    body: 'These update in real time via Supabase Realtime. When a student submits a debrief right now, the debriefs counter increments live. When a brief is generated, the students helped counter goes up.',
+  },
+  {
+    title: 'The complete loop',
+    body: 'Student shares debrief → arc flows to company node → company node processes intelligence → arc flows to next student → that student gets a better brief. This is the network effect made visible.',
+  },
+];
+
 
 interface Node extends d3.SimulationNodeDatum {
   id: string;
@@ -320,7 +345,8 @@ export default function CampusPulsePage() {
   }, []);
 
   return (
-    <div className="relative flex flex-col min-h-screen bg-[#07070f] overflow-hidden">
+    <TourProvider steps={PULSE_TOUR} tourKey="pulse">
+      <div className="relative flex flex-col min-h-screen bg-[#07070f] overflow-hidden">
       {/* Ambient background glow */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] rounded-full animate-pulse-slow"
@@ -415,6 +441,8 @@ export default function CampusPulsePage() {
           </div>
         ))}
       </div>
-    </div>
+      </div>
+      <TourReopen />
+    </TourProvider>
   );
 }

@@ -5,6 +5,35 @@ import PrepBrief from '@/components/student/PrepBrief';
 import TpcDashboard from '@/components/tpc/TpcDashboard';
 import { useAgentLogs } from '@/hooks/useAgentLogs';
 import { api } from '@/lib/api';
+import { TourProvider, TourReopen } from '@/components/tour/TourProvider';
+
+const DEMO_TOUR = [
+  {
+    title: 'What makes this an “agent”?',
+    body: 'An agent observes context, makes decisions, calls tools, and takes actions — without a human initiating each step. Click Standard Demo and watch it make 7 independent decisions in sequence.',
+  },
+  {
+    title: 'Decision 1–3: Data sourcing',
+    body: 'The agent decides whether to use local LPU debriefs, pull from a global pool, or scrape the web — based on whether local data crosses a minimum threshold. That’s dynamic tool selection, not a hardcoded pipeline.',
+  },
+  {
+    title: 'Decision 4: Strategy selection',
+    body: 'The agent queries a strategy_weights table and picks the intervention type with the highest historical win rate for this student’s profile. BRIEF_ASSESS has a 0.67 win rate — that’s 67% of similar students got selected.',
+  },
+  {
+    title: 'Plain English vs Technical view',
+    body: 'Toggle between views in the top-right of the trace. Plain English is for non-technical judges. Technical shows the real step names and decision basis from the database. Both are reading the same live data.',
+  },
+  {
+    title: 'The ↩ FALLBACK badge',
+    body: 'If you see this on the GENERATE_BRIEF step, it means Gemini API was busy and the system used a pre-built backup brief automatically. The demo never hangs. This is intentional, not a bug.',
+  },
+  {
+    title: 'Switch to Generated Brief tab',
+    body: 'Click “Generated Brief” above to see what the agent produced for Rahul — topic breakdown, skill gaps, 3-day prep plan, and a practice question. All generated autonomously from the 8 LPU debriefs.',
+  },
+];
+
 
 // Pre-seeded replay logs — used if live agent doesn't respond within 8s
 // This data came from a real agent run. Replaying it is showing real data, just cached.
@@ -89,6 +118,7 @@ export default function DemoScreen() {
   }, [logs]);
 
   return (
+    <TourProvider steps={DEMO_TOUR} tourKey="demo">
     <div className="min-h-screen bg-black text-gray-100 p-8 font-sans selection:bg-emerald-500/30">
       <div className="max-w-7xl mx-auto space-y-6">
         
@@ -175,6 +205,7 @@ export default function DemoScreen() {
         </div>
         
       </div>
-    </div>
+      <TourReopen />
+    </TourProvider>
   );
 }

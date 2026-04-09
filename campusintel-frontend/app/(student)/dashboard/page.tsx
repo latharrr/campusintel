@@ -1,6 +1,8 @@
 'use client';
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { TourProvider, TourReopen } from '@/components/tour/TourProvider';
+
 
 // Static demo data
 const RECENT_AGENT_ACTIONS = [
@@ -44,6 +46,29 @@ function ReadinessRing({ score }: { score: number }) {
   );
 }
 
+const DASHBOARD_TOUR = [
+  {
+    title: 'Your Placement Readiness Score',
+    body: 'This number (0.48) was calculated by the AI — it compared your skill levels against what Google actually tests at LPU, based on 8 verified debriefs from your campus. You didn\'t enter anything. It figured this out automatically.',
+  },
+  {
+    title: 'Why is System Design CRITICAL?',
+    body: 'Google tests System Design in 75% of LPU interviews. Your current level is 15%. That gap is flagged CRITICAL because it\'s both high-frequency and high-risk. DSA is MODERATE — important but less urgent.',
+  },
+  {
+    title: 'What the AI is doing for you',
+    body: 'This feed shows 4 actions the agent took — without you asking. It checked debriefs, calculated your score, generated a brief, and alerted TPC about 5 students with the same gap. All autonomous.',
+  },
+  {
+    title: 'The debrief popup',
+    body: 'After your interview, CampusIntel asks one question. 90 seconds of your time. That answer gets anonymized and added to the intelligence pool — helping every student who interviews at the same company after you.',
+  },
+  {
+    title: 'Navigate to Campus Pulse →',
+    body: 'Click 🌐 Campus Pulse in the sidebar to see the living network — every student, every company, every debrief, flowing in real time. That\'s the best place to understand how CampusIntel works at a glance.',
+  },
+];
+
 export default function DashboardPage() {
   const [showPopup, setShowPopup] = useState(false);
   const [popupStep, setPopupStep] = useState<'prompt' | 'debrief'>('prompt');
@@ -63,7 +88,8 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="relative min-h-screen p-8">
+    <TourProvider steps={DASHBOARD_TOUR} tourKey="dashboard">
+      <div className="relative min-h-screen p-8">
       {/* Background radial pulse */}
       <div className="fixed inset-0 pointer-events-none">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full animate-pulse-slow"
@@ -261,6 +287,7 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
-    </div>
+      <TourReopen />
+    </TourProvider>
   );
 }
