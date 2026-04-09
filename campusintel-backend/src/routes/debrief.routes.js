@@ -35,7 +35,7 @@ router.post('/', async (req, res) => {
   const { data: debrief, error: insertError } = await supabase
     .from('interview_debriefs')
     .insert({
-      id: `debrief-${uuidv4()}`,
+      id: uuidv4(),
       college_id: collegeId,
       company_id: companyId,
       student_id: studentId,
