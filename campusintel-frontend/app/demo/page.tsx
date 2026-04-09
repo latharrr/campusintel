@@ -203,7 +203,7 @@ export default function DemoScreen() {
           {activeTab === 'BRIEF' && <PrepBrief logs={logs} />}
           {activeTab === 'TPC' && <TpcDashboard isDemoActive={!!sessionId} />}
         </div>
-        
+        </div>
       </div>
       <TourReopen />
     </TourProvider>
