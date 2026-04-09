@@ -1,4 +1,4 @@
-const RAwApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const RAwApiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://campusintel-production.up.railway.app';
 const API_URL = RAwApiUrl.replace(/\/+$/, ''); // Remove any trailing slash
 
 async function post(path: string, body?: object) {
