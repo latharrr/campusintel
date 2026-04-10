@@ -5,6 +5,9 @@ import { useEffect, useRef } from 'react';
 export default function LandingPage() {
   const gridRef = useRef<HTMLDivElement>(null);
 
+  // Duplicate --mouse-x fix (was set twice before, now correct)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
   // Subtle mouse tracking for the grid background
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -12,7 +15,6 @@ export default function LandingPage() {
       const rect = gridRef.current.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
-      gridRef.current.style.setProperty('--mouse-x', `${x}px`);
       gridRef.current.style.setProperty('--mouse-x', `${x}px`);
       gridRef.current.style.setProperty('--mouse-y', `${y}px`);
     };
@@ -105,20 +107,25 @@ export default function LandingPage() {
 
       {/* Impact Stats Bar */}
       <div className="w-full border-y border-[#1e1e30] bg-[#07070f]/90 backdrop-blur-sm relative z-10">
-        <div className="max-w-5xl mx-auto px-6 py-5 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-          {[
-            { value: '847', suffix: '+', label: 'Students Coached' },
-            { value: '23',  suffix: '',  label: 'Companies Tracked' },
-            { value: '3.2', suffix: '×', label: 'Interview Conversion' },
-            { value: '98',  suffix: 'ms',label: 'Avg Agent Response' },
-          ].map((stat) => (
-            <div key={stat.label} className="group">
-              <div className="text-2xl md:text-3xl font-display font-bold text-white group-hover:text-indigo-300 transition-colors">
-                {stat.value}<span className="text-indigo-400">{stat.suffix}</span>
+        <div className="max-w-5xl mx-auto px-6 py-4 flex flex-col items-center gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center w-full">
+            {[
+              { value: '847', suffix: '+', label: 'Students Coached' },
+              { value: '23',  suffix: '',  label: 'Companies Tracked' },
+              { value: '3.2', suffix: '×', label: 'Interview Conversion' },
+              { value: '98',  suffix: 'ms',label: 'Avg Agent Response' },
+            ].map((stat) => (
+              <div key={stat.label} className="group">
+                <div className="text-2xl md:text-3xl font-display font-bold text-white group-hover:text-indigo-300 transition-colors">
+                  {stat.value}<span className="text-indigo-400">{stat.suffix}</span>
+                </div>
+                <div className="text-xs text-[#6b7280] mt-1 tracking-wide">{stat.label}</div>
               </div>
-              <div className="text-xs text-[#6b7280] mt-1 tracking-wide">{stat.label}</div>
-            </div>
-          ))}
+            ))}
+          </div>
+          <div className="text-[10px] text-[#4b4b6b] font-mono tracking-widest uppercase border border-[#1e1e30] px-3 py-1 rounded-full">
+            ✦ Projected figures based on demo dataset — built at hackathon
+          </div>
         </div>
       </div>
 

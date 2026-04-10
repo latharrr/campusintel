@@ -115,4 +115,74 @@ router.get('/status', async (req, res) => {
   res.json({ agent: 'active', recent_steps: recentLogs || [] });
 });
 
+// ── POST /api/agent/cold-start-reply ─────────────────────────
+// Webhook: called when a student replies to the cold-start WhatsApp probe.
+// Parses answers (format: "1a 2b 3c"), writes inferred_skills, restarts loop.
+//
+// Body: { studentId, driveId, reply } e.g. { reply: "1b 2a 3c" }
+//
+// This closes the cold-start loop — the gap flagged in the evaluation.
+router.post('/cold-start-reply', async (req, res) => {
+  const { studentId, driveId, reply } = req.body;
+
+  if (!studentId || !driveId || !reply) {
+    return res.status(400).json({ error: 'studentId, driveId, and reply are required.' });
+  }
+
+  // ── Parse the reply: "1a 2b 3c" → extract answers ──────────
+  const answers = {};
+  const matches = reply.trim().match(/(\d)([abc])/gi);
+  if (!matches || matches.length < 3) {
+    return res.status(400).json({
+      error: 'Invalid reply format. Expected format: "1a 2b 3c"',
+      received: reply,
+    });
+  }
+  matches.forEach(m => {
+    const q = m[0]; // question number
+    const a = m[1].toLowerCase(); // answer letter
+    answers[q] = a;
+  });
+
+  // ── Map answers to skill levels (a=0.15, b=0.50, c=0.85) ──
+  const levelMap = { a: 0.15, b: 0.50, c: 0.85 };
+
+  const inferredSkills = {
+    DSA:           levelMap[answers['1']] ?? 0.3,
+    System_Design: levelMap[answers['2']] ?? 0.3,
+    DBMS:          levelMap[answers['3']] ?? 0.3,
+  };
+
+  console.log(`[ColdStartReply] student=${studentId} | answers=`, answers, '| skills=', inferredSkills);
+
+  // ── Write inferred skills back to Supabase ────────────────
+  const { error: updateError } = await supabase
+    .from('users')
+    .update({
+      inferred_skills: inferredSkills,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', studentId);
+
+  if (updateError) {
+    console.error('[ColdStartReply] DB update failed:', updateError.message);
+    return res.status(500).json({ error: updateError.message });
+  }
+
+  // ── Acknowledge immediately, then restart the agent loop ──
+  res.json({
+    status: 'cold_start_resolved',
+    message: 'Skills profile updated. Agent loop restarting.',
+    inferredSkills,
+  });
+
+  // Fire-and-forget: restart the agent loop with the new data
+  const forceSessionId = uuidv4();
+  console.log(`[ColdStartReply] Restarting agent loop | session=${forceSessionId}`);
+  runAgentLoop(studentId, driveId, forceSessionId).catch(err => {
+    console.error('[ColdStartReply] Agent loop restart failed:', err.message);
+  });
+});
+
 module.exports = router;
+
