@@ -123,7 +123,7 @@ export default function LandingPage() {
       </div>
 
       {/* Massive App Preview Window */}
-      <section className="max-w-6xl mx-auto px-6 relative z-10 -mt-12 mb-32">
+      <section className="max-w-6xl mx-auto px-6 relative z-10 mt-12 mb-32">
         <div className="rounded-2xl border border-[#2a2a3d] bg-[#0a0a14]/80 backdrop-blur-xl shadow-[0_0_100px_rgba(79,70,229,0.15)] overflow-hidden">
           {/* Mac window header */}
           <div className="h-10 border-b border-[#1e1e30] flex items-center px-4 gap-2 bg-[#05050a]">
