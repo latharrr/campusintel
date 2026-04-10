@@ -261,30 +261,35 @@ export default function CampusPulsePage() {
       nodeGroups.attr('transform', d => `translate(${d.x ?? 0},${d.y ?? 0})`);
     });
 
-    // Highly interactive tracking on mouse move
+    // Magnetic mouse tracking - nodes dynamically repel the cursor
+    let mousePos = { x: cx, y: cy };
+    let isMouseActive = false;
+
+    sim.force('repelMouse', () => {
+      if (!isMouseActive) return;
+      nodesRef.current.forEach(n => {
+        const dx = n.x! - mousePos.x;
+        const dy = n.y! - mousePos.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const maxDist = 200; // Radius of magnetic repulsion
+
+        if (dist < maxDist && dist > 0) {
+          const force = (maxDist - dist) / maxDist * 1.5; 
+          n.vx! += (dx / dist) * force;
+          n.vy! += (dy / dist) * force;
+        }
+      });
+    });
+
     svg.on('mousemove', (event) => {
       const [mx, my] = d3.pointer(event);
-      const dx = (mx - cx); 
-      const dy = (my - cy);
-      
-      // 1. Shift the D3 gravity origin towards the mouse
-      sim.force('center', d3.forceCenter(cx + dx * 0.25, cy + dy * 0.25).strength(0.04));
-      sim.alphaTarget(0.1).restart(); // Keep physics flowing 
-      
-      // 2. Increase the parallax multiplier and make layers *follow* the mouse 
-      nodeLayer.style('transform', `translate(${dx * 0.15}px, ${dy * 0.15}px)`);
-      arcLayer.style('transform', `translate(${dx * 0.08}px, ${dy * 0.08}px)`);
-      pulseLayer.style('transform', `translate(${dx * 0.08}px, ${dy * 0.08}px)`);
+      mousePos = { x: mx, y: my };
+      isMouseActive = true;
+      sim.alpha(0.3).restart(); // Keep physics awake while mouse moves
     });
 
     svg.on('mouseleave', () => {
-      // Snap back to center
-      sim.force('center', d3.forceCenter(cx, cy).strength(0.05));
-      sim.alphaTarget(0.1).restart();
-      setTimeout(() => sim.alphaTarget(0), 1000);
-      nodeLayer.style('transform', `translate(0px, 0px)`);
-      arcLayer.style('transform', `translate(0px, 0px)`);
-      pulseLayer.style('transform', `translate(0px, 0px)`);
+      isMouseActive = false;
     });
 
     // Cleanup
