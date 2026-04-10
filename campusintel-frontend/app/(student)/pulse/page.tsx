@@ -161,6 +161,48 @@ export default function CampusPulsePage() {
       .join('g')
       .style('cursor', 'pointer');
 
+    // Make interactive: Hover fading
+    nodeGroups
+      .on('mouseenter', (event, d) => {
+        arcLines.transition().duration(300).attr('opacity', l => {
+          const s = l.source as Node;
+          const t = l.target as Node;
+          return (s.id === d.id || t.id === d.id) ? Math.max(l.opacity, 0.6) : 0.05;
+        });
+        nodeGroups.transition().duration(300).attr('opacity', n => {
+          if (n.id === d.id) return 1;
+          const isConnected = linksRef.current.some(l => {
+             const s = l.source as Node;
+             const t = l.target as Node;
+             return ((s.id === d.id && t.id === n.id) || (t.id === d.id && s.id === n.id));
+          });
+          return isConnected ? 1 : 0.2;
+        });
+      })
+      .on('mouseleave', () => {
+        arcLines.transition().duration(300).attr('opacity', l => l.opacity);
+        nodeGroups.transition().duration(300).attr('opacity', 1);
+      });
+
+    // Make interactive: Dragging
+    const drag = d3.drag<SVGGElement, Node>()
+      .on('start', (event, d) => {
+        if (!event.active) sim.alphaTarget(0.3).restart();
+        d.fx = d.x;
+        d.fy = d.y;
+      })
+      .on('drag', (event, d) => {
+        d.fx = event.x;
+        d.fy = event.y;
+      })
+      .on('end', (event, d) => {
+        if (!event.active) sim.alphaTarget(0);
+        d.fx = null;
+        d.fy = null;
+      });
+    
+    nodeGroups.call(drag);
+
     // Outer glow ring for college hub
     nodeGroups.filter(d => d.type === 'college')
       .append('circle')
