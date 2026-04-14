@@ -8,6 +8,8 @@ import ConfidenceChart from '@/components/agent/ConfidenceChart';
 import { useAgentLogs } from '@/hooks/useAgentLogs';
 import { api } from '@/lib/api';
 import { TourProvider, TourReopen } from '@/components/tour/TourProvider';
+import { getStudent, updateStudentProfile } from '@/lib/auth';
+
 
 const DEMO_TOUR = [
   {
@@ -219,8 +221,28 @@ export default function DemoScreen() {
             <div className="space-y-4">
               <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
                 <h3 className="text-base font-bold text-white mb-1">📄 Resume Upload Demo</h3>
-                <p className="text-sm text-gray-400 mb-4">Upload any student resume PDF. Gemini AI will extract a skills profile and update the student's readiness score — no form filling required.</p>
-                <ResumeUploader studentId="demo-student-rahul" />
+                <p className="text-sm text-gray-400 mb-1">Upload your resume PDF. Gemini AI will extract your skills profile and update your readiness score — no form filling required.</p>
+                {(() => {
+                  const loggedIn = getStudent();
+                  const targetId = loggedIn?.id || 'demo-student-rahul';
+                  const targetName = loggedIn?.name || 'Rahul (demo)';
+                  return (
+                    <>
+                      <p className="text-xs text-emerald-400 mb-4">
+                        Saving to: <span className="font-semibold">{targetName}</span>{loggedIn ? '' : ' (demo account — sign in to save to your profile)'}
+                      </p>
+                      <ResumeUploader
+                        studentId={targetId}
+                        onSkillsExtracted={(skills) => {
+                          // Update localStorage auth profile so dashboard reflects instantly
+                          if (loggedIn) {
+                            updateStudentProfile({ inferred_skills: skills, current_state: 'PROFILED' });
+                          }
+                        }}
+                      />
+                    </>
+                  );
+                })()}
               </div>
               <div className="bg-violet-900/10 border border-violet-500/20 rounded-xl p-4 flex items-center justify-between">
                 <div>

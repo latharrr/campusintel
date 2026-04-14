@@ -1,6 +1,7 @@
 'use client';
 import { useState, useRef } from 'react';
 import { api } from '@/lib/api';
+import { updateStudentProfile } from '@/lib/auth';
 
 type ResumeUploaderProps = {
   studentId?: string;
@@ -51,6 +52,13 @@ export default function ResumeUploader({
       if (res.success) {
         setResult(res);
         setStatus('success');
+        // Sync the inferred skills into localStorage so dashboard updates immediately
+        if (res.inferred_skills && Object.keys(res.inferred_skills).length > 0) {
+          updateStudentProfile({
+            inferred_skills: res.inferred_skills,
+            current_state: 'PROFILED',
+          });
+        }
         onSkillsExtracted?.(res.inferred_skills);
       } else {
         setErrorMsg(res.error || 'Upload failed. Try again.');

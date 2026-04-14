@@ -6,6 +6,23 @@ const { scanAndQueuePendingStudents } = require('../agent/scanner.job');
 
 const { v4: uuidv4 } = require('uuid');
 
+// ── POST /api/agent/trigger ───────────────────────────────────
+// Run agent for any real student + drive combination
+router.post('/trigger', async (req, res) => {
+  try {
+    const { studentId, driveId } = req.body;
+    if (!studentId || !driveId) {
+      return res.status(400).json({ error: 'studentId and driveId are required' });
+    }
+    const forceSessionId = uuidv4();
+    runAgentLoop(studentId, driveId, forceSessionId).catch(console.error);
+    res.json({ status: 'triggered', sessionId: forceSessionId, studentId, driveId });
+  } catch (err) {
+    console.error('[Route] trigger failed:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── POST /api/agent/trigger-demo ──────────────────────────────
 // Primary demo: Rahul (low confidence, scrape fallback path)
 router.post('/trigger-demo', async (req, res) => {
@@ -23,6 +40,7 @@ router.post('/trigger-demo', async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
 
 // ── POST /api/agent/trigger-demo-low-data ────────────────────
 // Adversarial: force scrape by temporarily unverifying local debriefs
@@ -108,9 +126,9 @@ router.get('/logs/:sessionId', async (req, res) => {
 router.get('/status', async (req, res) => {
   const { data: recentLogs } = await supabase
     .from('agent_logs')
-    .select('session_id, student_id, step_name, status, started_at')
+    .select('id, session_id, student_id, step_name, decision_made, decision_basis, status, started_at')
     .order('started_at', { ascending: false })
-    .limit(10);
+    .limit(15);
 
   res.json({ agent: 'active', recent_steps: recentLogs || [] });
 });

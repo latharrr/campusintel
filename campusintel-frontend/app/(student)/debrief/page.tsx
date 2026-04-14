@@ -1,6 +1,7 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
+import { getStudent } from '@/lib/auth';
 
 const ROUND_TYPES = [
   { value: 'online_test', label: '💻 Online Test / OA' },
@@ -22,23 +23,16 @@ const OUTCOME_STYLE: Record<string, string> = {
   selected: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400',
   rejected: 'bg-red-500/10 border-red-500/30 text-red-400',
   waiting: 'bg-amber-500/10 border-amber-500/30 text-amber-400',
+  withdrew: 'bg-[#2a2a3d] border-[#3a3a4d] text-[#6b7280]',
 };
 
-const FEED = [
-  { anon: 'CSE Student · 8.1 CGPA', company: 'Google', round: 'Technical 1', outcome: 'selected', tags: ['dp', 'graphs', 'arrays'], time: '12 min ago' },
-  { anon: 'CSE Student · 7.5 CGPA', company: 'Google', round: 'System Design', outcome: 'rejected', tags: ['system_design'], time: '1 hour ago' },
-  { anon: 'IT Student · 8.8 CGPA', company: 'Wipro', round: 'HR Round', outcome: 'selected', tags: ['behavioral'], time: '3 hours ago' },
-  { anon: 'CSE Student · 7.8 CGPA', company: 'Amazon', round: 'Technical 2', outcome: 'waiting', tags: ['trees', 'dp'], time: '5 hours ago' },
-];
-
-// Demo autofill data
+// Demo autofill
 const DEMO_FILL = {
   roundType: 'technical_1',
   questionsAsked: 'Design a URL shortening service (like bit.ly). Also asked about LRU cache implementation and time complexity of my solutions.',
   topicsCovered: ['system_design', 'arrays', 'graphs'],
   outcome: 'selected',
   difficultyRating: 4,
-  company: 'Google',
 };
 
 export default function DebriefPage() {
@@ -48,13 +42,31 @@ export default function DebriefPage() {
     topicsCovered: [] as string[],
     outcome: 'selected',
     difficultyRating: 3,
-    company: 'Google',
   });
 
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [result, setResult] = useState<any>(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [recentDebriefs, setRecentDebriefs] = useState<any[]>([]);
+  const [feedLoading, setFeedLoading] = useState(true);
+
+  // Load real debriefs from Supabase
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const stored = getStudent();
+        const collegeId = stored?.college_id || 'college-lpu-001';
+        const data = await api.getDebriefs(collegeId, 'company-google-001');
+        if (Array.isArray(data)) setRecentDebriefs(data.slice(0, 10));
+      } catch (e) {
+        console.warn('[Debrief feed] failed to load:', e);
+      } finally {
+        setFeedLoading(false);
+      }
+    };
+    load();
+  }, []);
 
   const toggleTopic = (topic: string) => {
     setForm(f => ({
@@ -85,21 +97,27 @@ export default function DebriefPage() {
     setErrorMsg('');
 
     try {
+      const stored = getStudent();
       const res = await api.submitDebrief({
         driveId: 'demo-drive-google',
-        collegeId: 'college-lpu-001',
+        collegeId: stored?.college_id || 'college-lpu-001',
         companyId: 'company-google-001',
         roundType: form.roundType,
         questionsAsked: form.questionsAsked,
         topicsCovered: form.topicsCovered,
         outcome: form.outcome,
         difficultyRating: form.difficultyRating,
+        studentId: stored?.id || 'demo-student-rahul',
       });
 
       if (res.success) {
         setResult(res);
         setStatus('success');
         setShowForm(false);
+        // Reload the feed
+        const collegeId = stored?.college_id || 'college-lpu-001';
+        const updated = await api.getDebriefs(collegeId, 'company-google-001');
+        if (Array.isArray(updated)) setRecentDebriefs(updated.slice(0, 10));
       } else {
         setErrorMsg(res.error || 'Submission failed.');
         setStatus('error');
@@ -137,8 +155,6 @@ export default function DebriefPage() {
       {/* Success Banner */}
       {status === 'success' && result && (
         <div className="mb-8 animate-fade-in-up space-y-4">
-
-          {/* Header */}
           <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-6">
             <div className="flex items-center gap-3 mb-4">
               <span className="text-3xl">⚡</span>
@@ -152,7 +168,6 @@ export default function DebriefPage() {
               </div>
             </div>
 
-            {/* Topic frequency bars */}
             <div className="text-xs font-mono text-indigo-400 uppercase tracking-widest mb-3">
               Live Intelligence — Re-synthesized from {result.total_debriefs} debriefs
             </div>
@@ -161,10 +176,8 @@ export default function DebriefPage() {
                 <div key={i} className="flex items-center gap-3">
                   <span className="text-xs font-mono text-[#6b7280] w-4">{i + 1}</span>
                   <div className="flex-1 bg-[#1e1e30] rounded-full h-1.5">
-                    <div
-                      className="bg-gradient-to-r from-indigo-500 to-violet-500 h-1.5 rounded-full transition-all duration-700"
-                      style={{ width: `${(t.frequency * 100).toFixed(0)}%` }}
-                    />
+                    <div className="bg-gradient-to-r from-indigo-500 to-violet-500 h-1.5 rounded-full transition-all duration-700"
+                      style={{ width: `${(t.frequency * 100).toFixed(0)}%` }} />
                   </div>
                   <span className="text-sm font-mono text-[#c4c4d8] w-32">{t.topic}</span>
                   <span className="text-sm font-bold text-indigo-400">{(t.frequency * 100).toFixed(0)}%</span>
@@ -173,7 +186,7 @@ export default function DebriefPage() {
             </div>
           </div>
 
-          {/* Before / After Comparison */}
+          {/* Before / After */}
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-4">
               <div className="flex items-center gap-2 text-xs text-red-400 font-mono uppercase tracking-widest mb-3">
@@ -201,9 +214,8 @@ export default function DebriefPage() {
             </div>
           </div>
 
-          {/* CTA */}
           <div className="flex items-center justify-between">
-            <button onClick={() => { setStatus('idle'); setResult(null); setForm({ roundType: 'technical_1', questionsAsked: '', topicsCovered: [], outcome: 'selected', difficultyRating: 3, company: 'Google' }); }}
+            <button onClick={() => { setStatus('idle'); setResult(null); setForm({ roundType: 'technical_1', questionsAsked: '', topicsCovered: [], outcome: 'selected', difficultyRating: 3 }); }}
               className="text-sm text-[#9b9bbb] hover:text-white transition">
               + Submit another debrief
             </button>
@@ -216,7 +228,8 @@ export default function DebriefPage() {
 
       {/* Debrief Form Modal */}
       {showForm && status !== 'success' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={(e) => { if (e.target === e.currentTarget) setShowForm(false); }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+          onClick={(e) => { if (e.target === e.currentTarget) setShowForm(false); }}>
           <div className="w-full max-w-xl bg-[#0f0f1a] border border-[#2a2a3d] rounded-2xl p-8 shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar mx-4">
             <div className="flex justify-between items-center mb-6">
               <h2 className="font-display text-xl text-[#e8e6f8]">Submit Interview Debrief</h2>
@@ -297,26 +310,44 @@ export default function DebriefPage() {
         </div>
       )}
 
-      {/* Feed */}
+      {/* Live Feed */}
       <h2 className="font-display text-xl text-[#e8e6f8] mb-4">Recent Debriefs from LPU</h2>
-      <div className="space-y-3">
-        {FEED.map((f, i) => (
-          <div key={i} className="card-dark rounded-xl p-4 flex items-start gap-4 hover:border-indigo-500/20 transition">
-            <div className="w-8 h-8 rounded-full bg-[#1a1a2e] border border-[#2a2a3d] flex items-center justify-center text-[10px] text-[#6b7280] flex-shrink-0 mt-0.5">🎓</div>
-            <div className="flex-1 min-w-0">
-              <div className="text-xs text-[#6b7280] mb-1">{f.anon}</div>
-              <div className="text-sm text-[#c4c4d8]">{f.company} · {f.round}</div>
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                {f.tags.map(t => <span key={t} className="text-[10px] px-2 py-0.5 rounded-full bg-[#1a1a2e] border border-[#2a2a3d] text-[#9b9bbb]">#{t}</span>)}
+      {feedLoading ? (
+        <div className="space-y-3">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-20 bg-[#2a2a3d] animate-pulse rounded-xl" />
+          ))}
+        </div>
+      ) : recentDebriefs.length > 0 ? (
+        <div className="space-y-3">
+          {recentDebriefs.map((f, i) => (
+            <div key={f.id || i} className="card-dark rounded-xl p-4 flex items-start gap-4 hover:border-indigo-500/20 transition">
+              <div className="w-8 h-8 rounded-full bg-[#1a1a2e] border border-[#2a2a3d] flex items-center justify-center text-[10px] text-[#6b7280] flex-shrink-0 mt-0.5">🎓</div>
+              <div className="flex-1 min-w-0">
+                <div className="text-xs text-[#6b7280] mb-1">Anonymous · {f.round_type?.replace(/_/g, ' ') || 'Unknown Round'}</div>
+                <div className="text-sm text-[#c4c4d8]">Google · Difficulty {f.difficulty_rating || 3}/5</div>
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {(f.topics_covered || []).map((t: string) => (
+                    <span key={t} className="text-[10px] px-2 py-0.5 rounded-full bg-[#1a1a2e] border border-[#2a2a3d] text-[#9b9bbb]">#{t}</span>
+                  ))}
+                </div>
+              </div>
+              <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${OUTCOME_STYLE[f.outcome] || OUTCOME_STYLE.waiting}`}>
+                  {f.outcome}
+                </span>
+                <span className="text-[11px] text-[#4b4b6b]">
+                  {f.created_at ? new Date(f.created_at).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }) : '–'}
+                </span>
               </div>
             </div>
-            <div className="flex flex-col items-end gap-2 flex-shrink-0">
-              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${OUTCOME_STYLE[f.outcome]}`}>{f.outcome}</span>
-              <span className="text-[11px] text-[#4b4b6b]">{f.time}</span>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <div className="text-center py-12 text-[#4b4b6b]">
+          <p>No debriefs yet. Be the first to share your experience!</p>
+        </div>
+      )}
     </div>
   );
 }

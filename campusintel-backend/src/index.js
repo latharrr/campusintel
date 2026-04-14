@@ -4,6 +4,7 @@ const express = require('express');
 const cors = require('cors');
 const tenantMiddleware = require('./middleware/tenant.middleware');
 const { startScanner } = require('./agent/scanner.job');
+const supabase = require('./config/supabase');
 
 const app = express();
 
@@ -27,6 +28,40 @@ app.get('/health', (req, res) => {
     dev_mode: process.env.CLAUDE_MOCK === 'true',
     time: new Date().toISOString(),
   });
+});
+
+// ── Status check (shows env + recent session logs) ────────────
+app.get('/status', async (req, res) => {
+  const result = {
+    status: 'ok',
+    service: 'CampusIntel Backend',
+    time: new Date().toISOString(),
+    env: {
+      dev_mode: process.env.CLAUDE_MOCK === 'true',
+      gemini_key_set: !!(process.env.GEMINI_API_KEY || process.env.MODELSLAB_API_KEY || process.env.NVIDIA_API_KEY),
+      supabase_url_set: !!process.env.SUPABASE_URL,
+      port: process.env.PORT || 3001,
+    },
+    supabase: { connected: false, error: null },
+    recent_sessions: [],
+  };
+
+  try {
+    const { data, error } = await supabase
+      .from('agent_logs')
+      .select('session_id, student_id, college_id, step_name, status, duration_ms, started_at')
+      .order('started_at', { ascending: false })
+      .limit(10);
+
+    if (error) throw error;
+
+    result.supabase.connected = true;
+    result.recent_sessions = data || [];
+  } catch (err) {
+    result.supabase.error = err.message;
+  }
+
+  res.json(result);
 });
 
 // ── Routes (added as we build) ────────────────────────────────
