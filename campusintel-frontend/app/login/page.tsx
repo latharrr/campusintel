@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { api } from '@/lib/api';
 import { setStudent } from '@/lib/auth';
 
@@ -9,6 +10,19 @@ export default function LoginPage() {
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
   const router = useRouter();
+
+  const handleLoginSuccess = (student: any) => {
+    setStudent(student);
+    if (student.role === 'tpc_admin' || student.role === 'super_admin') {
+      router.push('/dashboard');
+    } else {
+      if (student.current_state === 'UNAWARE') {
+        router.push('/onboarding');
+      } else {
+        router.push('/dashboard');
+      }
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,18 +36,7 @@ export default function LoginPage() {
       const res = await api.login(trimmed);
 
       if (res.success && res.student) {
-        setStudent(res.student);
-        // Route based on role
-        if (res.student.role === 'tpc_admin' || res.student.role === 'super_admin') {
-          router.push('/dashboard');
-        } else {
-          // Students without a profile go to onboarding
-          if (res.student.current_state === 'UNAWARE') {
-            router.push('/onboarding');
-          } else {
-            router.push('/dashboard');
-          }
-        }
+        handleLoginSuccess(res.student);
       } else {
         setErrorMsg(res.error || 'No account found. Please register first.');
         setStatus('error');
@@ -51,8 +54,7 @@ export default function LoginPage() {
     try {
       const res = await api.login(demoEmail);
       if (res.success && res.student) {
-        setStudent(res.student);
-        router.push('/dashboard');
+        handleLoginSuccess(res.student);
       } else {
         setErrorMsg(res.error || 'Demo login failed.');
         setStatus('error');
@@ -155,7 +157,7 @@ export default function LoginPage() {
 
         <p className="text-center mt-6 text-[13px] text-[#4b4b6b]">
           New to CampusIntel?{' '}
-          <a href="/onboarding" className="text-indigo-400 hover:text-indigo-300 transition">Create account</a>
+          <Link href="/onboarding" className="text-indigo-400 hover:text-indigo-300 transition">Create account</Link>
         </p>
       </div>
 

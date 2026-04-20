@@ -1,6 +1,7 @@
 'use client';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import Link from 'next/link';
 import { api } from '@/lib/api';
 import { setStudent } from '@/lib/auth';
 import ResumeUploader from '@/components/student/ResumeUploader';
@@ -202,7 +203,7 @@ export default function OnboardingPage() {
 
             <p className="text-center mt-5 text-[13px] text-[#4b4b6b]">
               Already have an account?{' '}
-              <a href="/login" className="text-indigo-400 hover:text-indigo-300 transition">Sign in</a>
+              <Link href="/login" className="text-indigo-400 hover:text-indigo-300 transition">Sign in</Link>
             </p>
           </div>
         )}
