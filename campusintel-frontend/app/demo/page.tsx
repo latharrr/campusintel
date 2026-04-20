@@ -20,12 +20,12 @@ const DEMO_TOUR = [
   },
   {
     title: 'Decision 1–3: Data sourcing',
-    body: 'The agent decides whether to use local LPU debriefs, pull from a global pool, or scrape the web — based on whether local data crosses a minimum threshold. That's dynamic tool selection, not a hardcoded pipeline.',
+    body: `The agent decides whether to use local LPU debriefs, pull from a global pool, or scrape the web — based on whether local data crosses a minimum threshold. That's dynamic tool selection, not a hardcoded pipeline.`,
     highlight: 'tour-demo-trace'
   },
   {
     title: 'Decision 4: Strategy selection',
-    body: 'The agent queries a strategy_weights table and picks the intervention type with the highest historical win rate for this student's profile. BRIEF_ASSESS has a 0.67 win rate — that's 67% of similar students got selected.',
+    body: `The agent queries a strategy_weights table and picks the intervention type with the highest historical win rate for this student's profile. BRIEF_ASSESS has a 0.67 win rate — that's 67% of similar students got selected.`,
     highlight: 'tour-demo-trace'
   },
   {
@@ -34,7 +34,7 @@ const DEMO_TOUR = [
     highlight: 'tour-demo-trace'
   },
   {
-    title: 'The ↩ FALLBACK badge',
+    title: 'The \u21a9 FALLBACK badge',
     body: 'If you see this on the GENERATE_BRIEF step, it means Gemini API was busy and the system used a pre-built backup brief automatically. The system never hangs. This is intentional, not a bug.',
     highlight: 'tour-demo-trace'
   },
