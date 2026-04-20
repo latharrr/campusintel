@@ -1,18 +1,51 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { getStudent, logout, StudentProfile } from '@/lib/auth';
 
 const NAV_ITEMS = [
-  { icon: '🌐', label: 'Campus Pulse', href: '/pulse', badge: 'NEW' },
-  { icon: '⊞', label: 'Dashboard', href: '/dashboard' },
-  { icon: '📋', label: 'My Briefs', href: '/briefs' },
-  { icon: '🏢', label: 'Drives', href: '/drives' },
-  { icon: '🤝', label: 'Debriefs', href: '/debrief', redDot: true },
-  { icon: '📊', label: 'Progress', href: '/progress' },
+  { icon: '🌐', label: 'Campus Pulse', href: '/pulse', id: 'nav-pulse', badge: 'NEW' },
+  { icon: '⊞', label: 'Dashboard', href: '/dashboard', id: 'nav-dashboard' },
+  { icon: '📋', label: 'My Briefs', href: '/briefs', id: 'nav-briefs' },
+  { icon: '🏢', label: 'Drives', href: '/drives', id: 'nav-drives' },
+  { icon: '🤝', label: 'Debriefs', href: '/debrief', id: 'nav-debrief', redDot: true },
+  { icon: '📊', label: 'Progress', href: '/progress', id: 'nav-progress' },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const [student, setStudent] = useState<StudentProfile | null>(null);
+
+  useEffect(() => {
+    // Load from localStorage on mount
+    setStudent(getStudent());
+
+    // Re-sync whenever auth profile is updated (e.g. after resume upload or login)
+    const handleProfileUpdate = (e: Event) => {
+      const updated = (e as CustomEvent).detail;
+      if (updated) setStudent(updated);
+      else setStudent(getStudent());
+    };
+
+    window.addEventListener('ci:profile-updated', handleProfileUpdate);
+    return () => window.removeEventListener('ci:profile-updated', handleProfileUpdate);
+  }, []);
+
+  const handleSignOut = (e: React.MouseEvent) => {
+    e.preventDefault();
+    logout(); // clears localStorage and redirects to /login
+  };
+
+  // Build avatar initial from name
+  const avatarInitial = student?.name
+    ? student.name.trim()[0].toUpperCase()
+    : '?';
+
+  const displayName = student?.name || 'Loading...';
+  const displaySub = [student?.branch, student?.college_id?.replace('college-', '').toUpperCase().split('-')[0]]
+    .filter(Boolean)
+    .join(' · ') || 'LPU';
 
   return (
     <aside className="w-[240px] h-screen sticky top-0 bg-[#0a0a14] border-r border-[#1e1e30] flex flex-col flex-shrink-0 z-40">
@@ -27,16 +60,18 @@ export default function Sidebar() {
         <span className="font-display text-[15px] text-[#e8e6f8] font-semibold">CampusIntel</span>
       </div>
 
-      {/* User profile */}
+      {/* User profile — reads from localStorage */}
       <div className="px-4 py-4 border-b border-[#1e1e30] flex items-center gap-3">
         <div className="w-9 h-9 rounded-full bg-indigo-600 flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
-          R
+          {avatarInitial}
         </div>
         <div className="min-w-0">
-          <div className="text-sm font-medium text-[#e8e6f8] truncate">Rahul Sharma</div>
+          <div className="text-sm font-medium text-[#e8e6f8] truncate">{displayName}</div>
           <div className="flex items-center gap-1.5 mt-0.5">
-            <span className="text-[11px] text-[#6b7280]">CSE · LPU</span>
-            <span className="px-1.5 py-px text-[10px] rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">LPU</span>
+            <span className="text-[11px] text-[#6b7280] truncate">{displaySub}</span>
+            {student?.role === 'tpc_admin' && (
+              <span className="px-1.5 py-px text-[10px] rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">TPC</span>
+            )}
           </div>
         </div>
       </div>
@@ -49,7 +84,7 @@ export default function Sidebar() {
             <Link
               key={item.href}
               href={item.href}
-              id={`nav-${item.href.replace('/', '')}`}
+              id={item.id}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all relative group ${
                 isActive
                   ? 'bg-indigo-500/10 text-indigo-300 border-l-2 border-indigo-500'
@@ -85,10 +120,14 @@ export default function Sidebar() {
           <span>🏫</span>
           <span className="font-medium">TPC View</span>
         </Link>
-        <Link href="/login" className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[#6b7280] hover:text-red-400 hover:bg-red-500/5 transition-all">
+        {/* Fixed: calls logout() to clear localStorage, not just navigate */}
+        <button
+          onClick={handleSignOut}
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[#6b7280] hover:text-red-400 hover:bg-red-500/5 transition-all text-left"
+        >
           <span>↩</span>
           <span className="font-medium">Sign Out</span>
-        </Link>
+        </button>
       </div>
     </aside>
   );

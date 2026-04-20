@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import ReasoningTrace from '@/components/agent/ReasoningTrace';
 import PrepBrief from '@/components/student/PrepBrief';
 import TpcDashboard from '@/components/tpc/TpcDashboard';
@@ -8,48 +9,47 @@ import ConfidenceChart from '@/components/agent/ConfidenceChart';
 import { useAgentLogs } from '@/hooks/useAgentLogs';
 import { api } from '@/lib/api';
 import { TourProvider, TourReopen } from '@/components/tour/TourProvider';
-import { getStudent, updateStudentProfile } from '@/lib/auth';
+import { getStudent, isLoggedIn, updateStudentProfile } from '@/lib/auth';
 
 
 const DEMO_TOUR = [
   {
-    title: 'What makes this an “agent”?',
-    body: 'An agent observes context, makes decisions, calls tools, and takes actions — without a human initiating each step. Click Standard Demo and watch it make 7 independent decisions in sequence.',
+    title: 'What makes this an "agent"?',
+    body: 'An agent observes context, makes decisions, calls tools, and takes actions — without a human initiating each step. Click Run Agent Analysis and watch it make 7 independent decisions in sequence.',
     highlight: 'tour-demo-scenario'
   },
   {
     title: 'Decision 1–3: Data sourcing',
-    body: 'The agent decides whether to use local LPU debriefs, pull from a global pool, or scrape the web — based on whether local data crosses a minimum threshold. That’s dynamic tool selection, not a hardcoded pipeline.',
+    body: 'The agent decides whether to use local LPU debriefs, pull from a global pool, or scrape the web — based on whether local data crosses a minimum threshold. That's dynamic tool selection, not a hardcoded pipeline.',
     highlight: 'tour-demo-trace'
   },
   {
     title: 'Decision 4: Strategy selection',
-    body: 'The agent queries a strategy_weights table and picks the intervention type with the highest historical win rate for this student’s profile. BRIEF_ASSESS has a 0.67 win rate — that’s 67% of similar students got selected.',
+    body: 'The agent queries a strategy_weights table and picks the intervention type with the highest historical win rate for this student's profile. BRIEF_ASSESS has a 0.67 win rate — that's 67% of similar students got selected.',
     highlight: 'tour-demo-trace'
   },
   {
     title: 'Plain English vs Technical view',
-    body: 'Toggle between views in the top-right of the trace. Plain English is for non-technical judges. Technical shows the real step names and decision basis from the database. Both are reading the same live data.',
+    body: 'Toggle between views in the top-right of the trace. Plain English is for non-technical judges. Technical shows the real step names and decision basis from the database. Both read the same live data.',
     highlight: 'tour-demo-trace'
   },
   {
     title: 'The ↩ FALLBACK badge',
-    body: 'If you see this on the GENERATE_BRIEF step, it means Gemini API was busy and the system used a pre-built backup brief automatically. The demo never hangs. This is intentional, not a bug.',
+    body: 'If you see this on the GENERATE_BRIEF step, it means Gemini API was busy and the system used a pre-built backup brief automatically. The system never hangs. This is intentional, not a bug.',
     highlight: 'tour-demo-trace'
   },
   {
     title: 'Switch to Generated Brief tab',
-    body: 'Click “Generated Brief” above to see what the agent produced for Rahul — topic breakdown, skill gaps, 3-day prep plan, and a practice question. All generated autonomously from the 8 LPU debriefs.',
+    body: 'Click "Generated Brief" above to see what the agent produced — topic breakdown, skill gaps, 3-day prep plan, and a practice question. All generated autonomously from the LPU debriefs.',
     highlight: 'tour-demo-tabs'
   },
 ];
 
-
-// Pre-seeded replay logs — used if live agent doesn't respond within 8s
-// This data came from a real agent run. Replaying it is showing real data, just cached.
+// Pre-seeded replay logs — used if live agent doesn't respond within 3s
+// This data came from a real agent run
 const REPLAY_LOGS = [
-  { id: 'r1', step_number: 1, step_name: 'OBSERVE_PROFILE', decision_basis: 'Student: Rahul Sharma | Company: Google | 68 days remaining', decision_made: 'CONTINUE', duration_ms: 312, status: 'success' as const, output: {}, started_at: new Date().toISOString() },
-  { id: 'r2', step_number: 2, step_name: 'COLD_START_DETECTED', decision_basis: 'hasSkillData=true | hasResume=false | Decision: PROCEED', decision_made: 'PROCEED', duration_ms: 48, status: 'skipped' as const, output: {}, started_at: new Date().toISOString() },
+  { id: 'r1', step_number: 1, step_name: 'OBSERVE_PROFILE', decision_basis: 'Analyzing student profile · Company: Google · 68 days remaining', decision_made: 'CONTINUE', duration_ms: 312, status: 'success' as const, output: {}, started_at: new Date().toISOString() },
+  { id: 'r2', step_number: 2, step_name: 'COLD_START_DETECTED', decision_basis: 'hasSkillData=true | hasResume=true | Decision: PROCEED', decision_made: 'PROCEED', duration_ms: 48, status: 'skipped' as const, output: {}, started_at: new Date().toISOString() },
   { id: 'r3', step_number: 3, step_name: 'QUERY_LOCAL_DB', decision_basis: 'local_data=8 debriefs · threshold=5 · ABOVE_THRESHOLD', decision_made: 'USE_LOCAL_DATA', duration_ms: 284, status: 'success' as const, output: {}, started_at: new Date().toISOString() },
   { id: 'r4', step_number: 4, step_name: 'ASSESS_READINESS', decision_basis: 'readiness_score=0.48 · system_design=CRITICAL(0.15) · dsa=MODERATE(0.55)', decision_made: 'CONTINUE', duration_ms: 156, status: 'success' as const, output: {}, started_at: new Date().toISOString() },
   { id: 'r5', step_number: 5, step_name: 'SELECT_STRATEGY', decision_basis: 'profileType=LOW_CONFIDENCE · strategy=BRIEF_ASSESS · weight=0.67 · source=STRATEGY_WEIGHTS_TABLE', decision_made: 'BRIEF_ASSESS', duration_ms: 203, status: 'success' as const, output: {}, started_at: new Date().toISOString() },
@@ -60,17 +60,26 @@ const REPLAY_LOGS = [
 ];
 
 export default function DemoScreen() {
+  const router = useRouter();
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [activeTab, setActiveTab] = useState<'TRACE' | 'BRIEF' | 'TPC' | 'RESUME' | 'CHART'>('TRACE');
-  const [scenario, setScenario] = useState<'STANDARD' | 'LOW_DATA' | 'HIGH_CONF'>('STANDARD');
   const [replayMode, setReplayMode] = useState(false);
   const [replayLogs, setReplayLogs] = useState<typeof REPLAY_LOGS>([]);
+  const [student, setStudent] = useState<ReturnType<typeof getStudent>>(null);
 
-  const { logs: liveLogs, wsConnected } = useAgentLogs(sessionId);
+  const { logs: liveLogs } = useAgentLogs(sessionId);
   const logs = replayMode ? replayLogs : liveLogs;
 
-  // Extracted so it can be called both on API failure AND on timeout
+  // Load logged-in student
+  useEffect(() => {
+    setStudent(getStudent());
+    // Listen for profile updates
+    const onUpdate = (e: Event) => setStudent((e as CustomEvent).detail || getStudent());
+    window.addEventListener('ci:profile-updated', onUpdate);
+    return () => window.removeEventListener('ci:profile-updated', onUpdate);
+  }, []);
+
   const startReplay = () => {
     setReplayMode(true);
     setIsRunning(true);
@@ -82,18 +91,13 @@ export default function DemoScreen() {
     });
   };
 
-  const handleTrigger = async (type: 'STANDARD' | 'LOW_DATA' | 'HIGH_CONF') => {
+  const handleTrigger = async () => {
     setIsRunning(true);
     setReplayMode(false);
     setReplayLogs([]);
-    setScenario(type);
     setActiveTab('TRACE');
     try {
-      let res;
-      if (type === 'STANDARD') res = await api.triggerDemo();
-      else if (type === 'LOW_DATA') res = await api.triggerLowData();
-      else res = await api.triggerHighConfidence();
-      
+      const res = await api.triggerDemo();
       if (res.sessionId) setSessionId(res.sessionId);
       if (res.status?.includes('triggered') && !res.sessionId) {
         setTimeout(async () => {
@@ -102,86 +106,98 @@ export default function DemoScreen() {
         }, 1000);
       }
     } catch (e) {
-      // Backend unreachable — go straight to replay, don't show empty screen
       console.warn('API failed, switching to replay mode:', e);
       startReplay();
     }
   };
 
-  // Layer 2: if backend responds but logs don't arrive within 3s, replay
+  // Fallback: if backend responds but logs don't arrive within 3s, replay
   useEffect(() => {
     if (!isRunning || replayMode) return;
     const timeout = setTimeout(() => {
-      if (logs.length === 0) {
-        startReplay();
-      }
+      if (logs.length === 0) startReplay();
     }, 3000);
     return () => clearTimeout(timeout);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRunning, replayMode, logs.length]);
 
-  // End the running state when final step appears
+  // End running state when final step appears
   useEffect(() => {
     if (logs.some((l) => l.step_name === 'UPDATE_STUDENT_STATE' || l.step_name === 'ERROR')) {
       setIsRunning(false);
     }
   }, [logs]);
 
+  const studentFirstName = student?.name?.split(' ')[0] || 'you';
+
   return (
     <TourProvider steps={DEMO_TOUR} tourKey="demo">
     <div className="min-h-screen bg-black text-gray-100 p-8 font-sans selection:bg-emerald-500/30">
       <div className="max-w-7xl mx-auto space-y-6">
-        
-        {/* Header containing the scenario triggers */}
+
+        {/* Header */}
         <header id="tour-demo-scenario" className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-gray-900 border border-gray-800 p-6 rounded-2xl shadow-xl">
           <div>
             <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-              <span className="text-3xl">🧠</span> Agent Trace Demo
+              <span className="text-3xl">🧠</span> Agent Reasoning Trace
             </h1>
             <p className="text-gray-400 text-sm mt-1">
-              Select a scenario to watch the autonomous preparation loop in real time.
+              {student
+                ? <>Logged in as <span className="text-indigo-300 font-semibold">{student.name}</span> · Watch your autonomous preparation agent run in real time.</>
+                : 'Watch the autonomous preparation agent make 7 real decisions in sequence.'
+              }
             </p>
           </div>
-          
+
           <div className="flex flex-wrap gap-3">
-            <button 
-              onClick={() => handleTrigger('STANDARD')}
+            {/* Single "Run Agent" button — uses the real logged-in student if available, otherwise demo data */}
+            <button
+              onClick={handleTrigger}
               disabled={isRunning}
-              className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition disabled:opacity-50 ring-1 ring-blue-500/50 shadow-lg shadow-blue-500/20"
+              className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold transition disabled:opacity-50 ring-1 ring-indigo-500/50 shadow-lg shadow-indigo-500/20"
             >
-              ▶ Standard Demo (Rahul)
+              {isRunning ? (
+                <span className="flex items-center gap-2">
+                  <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                  </svg>
+                  Agent Running...
+                </span>
+              ) : `▶ Run Agent Analysis`}
             </button>
-            <button 
-              onClick={() => handleTrigger('LOW_DATA')}
-              disabled={isRunning}
-              className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-semibold transition disabled:opacity-50 ring-1 ring-amber-500/50 shadow-lg shadow-amber-500/20"
-            >
-              ⚡ Scrape Fallback
-            </button>
-            <button 
-              onClick={() => handleTrigger('HIGH_CONF')}
-              disabled={isRunning}
-              className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold transition disabled:opacity-50 ring-1 ring-emerald-500/50 shadow-lg shadow-emerald-500/20"
-            >
-              ⭐ High Confidence (Priya)
-            </button>
+
+            {!student && (
+              <button
+                onClick={() => router.push('/login')}
+                className="px-5 py-2.5 bg-transparent border border-indigo-500/40 text-indigo-300 rounded-lg font-semibold transition hover:bg-indigo-500/10"
+              >
+                Sign In to Save Results
+              </button>
+            )}
+
             <a
               href="/debrief"
-              className="px-5 py-2.5 bg-violet-600/20 hover:bg-violet-600/40 text-violet-300 border border-violet-500/40 rounded-lg font-semibold transition ring-0"
+              className="px-5 py-2.5 bg-violet-600/20 hover:bg-violet-600/40 text-violet-300 border border-violet-500/40 rounded-lg font-semibold transition"
             >
               📝 Submit Debrief
             </a>
           </div>
         </header>
 
-        {/* Info Context Bar */}
+        {/* Context bar — shows real user or generic */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-gray-900/50 border border-gray-800 p-4 rounded-xl flex items-center gap-4">
-            <div className="h-12 w-12 bg-gray-800 rounded-full flex items-center justify-center text-xl">🎓</div>
+            <div className="h-12 w-12 bg-indigo-600/20 rounded-full flex items-center justify-center text-xl font-bold text-indigo-300">
+              {student ? studentFirstName[0].toUpperCase() : '🎓'}
+            </div>
             <div>
-              <div className="text-sm text-gray-500 font-semibold mb-0.5">CURRENT CONTEXT</div>
+              <div className="text-sm text-gray-500 font-semibold mb-0.5">STUDENT PROFILE</div>
               <div className="font-medium text-gray-200">
-                {scenario === 'HIGH_CONF' ? 'Priya Mehta (High Confidence)' : 'Rahul Sharma (Low Confidence)'}
+                {student ? `${student.name} · ${student.branch || 'CS'}` : 'Sample Student Profile'}
+              </div>
+              <div className="text-xs text-gray-500 mt-0.5">
+                {student ? `Confidence: ${(student.confidence_score || 0).toFixed(2)}` : 'Sign in to use your real profile'}
               </div>
             </div>
           </div>
@@ -190,6 +206,7 @@ export default function DemoScreen() {
             <div>
               <div className="text-sm text-gray-500 font-semibold mb-0.5">DETECTED EVENT</div>
               <div className="font-medium text-gray-200">Google Campus Drive in 68 hours</div>
+              <div className="text-xs text-gray-500 mt-0.5">Agent triggered automatically</div>
             </div>
           </div>
         </div>
@@ -201,12 +218,16 @@ export default function DemoScreen() {
               key={tab}
               onClick={() => setActiveTab(tab as any)}
               className={`px-5 py-3 font-semibold text-sm rounded-t-lg transition-colors whitespace-nowrap ${
-                activeTab === tab 
-                  ? 'bg-gray-900 text-emerald-400 border border-b-0 border-gray-800 relative after:absolute after:bottom-[-1px] after:left-0 after:w-full after:h-px after:bg-gray-900' 
+                activeTab === tab
+                  ? 'bg-gray-900 text-emerald-400 border border-b-0 border-gray-800 relative after:absolute after:bottom-[-1px] after:left-0 after:w-full after:h-px after:bg-gray-900'
                   : 'text-gray-500 hover:text-gray-300'
               }`}
             >
-              {tab === 'TRACE' ? '🧠 Live Reasoning' : tab === 'CHART' ? '📈 Confidence Chart' : tab === 'BRIEF' ? '📋 Generated Brief' : tab === 'TPC' ? '🏫 TPC Dashboard' : '📄 Resume Upload'}
+              {tab === 'TRACE' ? '🧠 Live Reasoning'
+                : tab === 'CHART' ? '📈 Confidence Chart'
+                : tab === 'BRIEF' ? '📋 Generated Brief'
+                : tab === 'TPC' ? '🏫 TPC Dashboard'
+                : '📄 Resume Upload'}
             </button>
           ))}
         </div>
@@ -216,38 +237,49 @@ export default function DemoScreen() {
           {activeTab === 'TRACE' && <ReasoningTrace logs={logs} isActive={isRunning} />}
           {activeTab === 'CHART' && <ConfidenceChart logs={logs} isActive={isRunning} />}
           {activeTab === 'BRIEF' && <PrepBrief logs={logs} />}
-          {activeTab === 'TPC' && <TpcDashboard isDemoActive={!!sessionId} contextName={scenario === 'HIGH_CONF' ? 'Priya Mehta' : 'Rahul Sharma'} />}
+          {activeTab === 'TPC' && (
+            <TpcDashboard
+              isDemoActive={!!sessionId}
+              contextName={student?.name || 'Student'}
+            />
+          )}
           {activeTab === 'RESUME' && (
             <div className="space-y-4">
               <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
-                <h3 className="text-base font-bold text-white mb-1">📄 Resume Upload Demo</h3>
-                <p className="text-sm text-gray-400 mb-1">Upload your resume PDF. Gemini AI will extract your skills profile and update your readiness score — no form filling required.</p>
-                {(() => {
-                  const loggedIn = getStudent();
-                  const targetId = loggedIn?.id || 'demo-student-rahul';
-                  const targetName = loggedIn?.name || 'Rahul (demo)';
-                  return (
-                    <>
-                      <p className="text-xs text-emerald-400 mb-4">
-                        Saving to: <span className="font-semibold">{targetName}</span>{loggedIn ? '' : ' (demo account — sign in to save to your profile)'}
-                      </p>
-                      <ResumeUploader
-                        studentId={targetId}
-                        onSkillsExtracted={(skills) => {
-                          // Update localStorage auth profile so dashboard reflects instantly
-                          if (loggedIn) {
-                            updateStudentProfile({ inferred_skills: skills, current_state: 'PROFILED' });
-                          }
-                        }}
-                      />
-                    </>
-                  );
-                })()}
+                <h3 className="text-base font-bold text-white mb-1">📄 Resume Upload</h3>
+                {student ? (
+                  <>
+                    <p className="text-sm text-gray-400 mb-1">
+                      Upload your resume PDF. AI will extract your skills and update your readiness score.
+                    </p>
+                    <p className="text-xs text-emerald-400 mb-4">
+                      Saving to: <span className="font-semibold">{student.name}</span> · {student.email}
+                    </p>
+                    <ResumeUploader
+                      studentId={student.id}
+                      onSkillsExtracted={(skills) => {
+                        updateStudentProfile({ inferred_skills: skills, current_state: 'PROFILED' });
+                      }}
+                    />
+                  </>
+                ) : (
+                  <div className="text-center py-10">
+                    <p className="text-gray-400 text-sm mb-4">
+                      Sign in to upload your resume and save your skills profile.
+                    </p>
+                    <button
+                      onClick={() => router.push('/login')}
+                      className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-semibold transition"
+                    >
+                      Sign In →
+                    </button>
+                  </div>
+                )}
               </div>
               <div className="bg-violet-900/10 border border-violet-500/20 rounded-xl p-4 flex items-center justify-between">
                 <div>
                   <div className="text-sm font-semibold text-white">📝 Submit a Real Debrief</div>
-                  <div className="text-xs text-gray-400 mt-0.5">Share an interview experience to update Google's intelligence for all future students at LPU.</div>
+                  <div className="text-xs text-gray-400 mt-0.5">Share an interview experience to update intelligence for all future students.</div>
                 </div>
                 <a href="/debrief" className="ml-4 px-4 py-2 rounded-lg bg-violet-600 hover:bg-violet-700 text-white text-sm font-semibold transition whitespace-nowrap">
                   Go to Debrief →

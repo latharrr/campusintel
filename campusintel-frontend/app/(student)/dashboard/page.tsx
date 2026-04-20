@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { TourProvider, TourReopen } from '@/components/tour/TourProvider';
 import { api } from '@/lib/api';
@@ -49,7 +49,22 @@ function Skeleton({ className }: { className?: string }) {
   return <div className={`animate-pulse bg-[#2a2a3d] rounded-lg ${className}`} />;
 }
 
-// ── Step name → friendly label map ────────────────────────────
+// ── Toast notification ─────────────────────────────────────────
+function Toast({ message, onClose }: { message: string; onClose: () => void }) {
+  useEffect(() => {
+    const t = setTimeout(onClose, 4000);
+    return () => clearTimeout(t);
+  }, [onClose]);
+  return (
+    <div className="fixed bottom-6 right-6 z-50 animate-fade-in-up flex items-center gap-3 px-5 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-sm font-medium shadow-2xl backdrop-blur-sm">
+      <span className="text-lg">⚡</span>
+      {message}
+      <button onClick={onClose} className="ml-2 text-[#6b7280] hover:text-white transition text-base">×</button>
+    </div>
+  );
+}
+
+// ── Step name → color map ──────────────────────────────────────
 const STEP_COLOR: Record<string, string> = {
   GENERATE_BRIEF: 'bg-violet-500',
   QUERY_LOCAL_DB: 'bg-blue-500',
@@ -91,18 +106,22 @@ export default function DashboardPage() {
   const [drives, setDrives] = useState<Drive[]>([]);
   const [briefCount, setBriefCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [toast, setToast] = useState<string | null>(null);
   const [showPopup, setShowPopup] = useState(false);
   const [popupStep, setPopupStep] = useState<'prompt' | 'debrief'>('prompt');
   const [debriefForm, setDebriefForm] = useState({ questions: '', outcome: 'selected', round: 'technical_1' });
   const [debriefStatus, setDebriefStatus] = useState<'idle' | 'submitting' | 'done'>('idle');
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const loadDashboard = useCallback(async () => {
     const stored = getStudent();
-    const studentId = stored?.id || 'demo-student-rahul';
+    // Use real stored student — no hardcoded demo fallback
+    const studentId = stored?.id;
     const collegeId = stored?.college_id || getCollegeId();
 
+    if (!studentId) return; // Auth guard in layout handles redirect
+
     try {
-      // Parallel load
       const [studentRes, drivesRes, briefRes, agentStatusRes] = await Promise.allSettled([
         api.getStudent(studentId),
         api.getDrives(collegeId),
@@ -113,7 +132,6 @@ export default function DashboardPage() {
       if (studentRes.status === 'fulfilled' && !studentRes.value.error) {
         setStudentData(studentRes.value);
       } else {
-        // Fallback to stored profile
         setStudentData(stored);
       }
 
@@ -125,7 +143,6 @@ export default function DashboardPage() {
         setBriefCount(briefRes.value.length);
       }
 
-      // Load recent agent logs from agentStatus
       if (agentStatusRes.status === 'fulfilled' && agentStatusRes.value.recent_steps) {
         setAgentLogs(agentStatusRes.value.recent_steps.slice(0, 5));
       }
@@ -139,22 +156,42 @@ export default function DashboardPage() {
 
   useEffect(() => {
     loadDashboard();
-    // Show popup if not dismissed
+
+    // Show debrief popup periodically (every 2 hours max)
     const dismissed = localStorage.getItem('interview_popup_dismissed');
     const twoHoursAgo = Date.now() - 2 * 60 * 60 * 1000;
     if (!dismissed || parseInt(dismissed) < twoHoursAgo) {
       setTimeout(() => setShowPopup(true), 1500);
     }
 
-    // Re-sync student data whenever auth profile is updated (e.g. after CV upload)
+    // Re-sync student profile when updated (e.g. after CV upload)
     const onProfileUpdated = (e: Event) => {
       const updated = (e as CustomEvent).detail;
-      if (updated) {
-        setStudentData((prev: any) => ({ ...(prev || {}), ...updated }));
-      }
+      if (updated) setStudentData((prev: any) => ({ ...(prev || {}), ...updated }));
     };
     window.addEventListener('ci:profile-updated', onProfileUpdated);
-    return () => window.removeEventListener('ci:profile-updated', onProfileUpdated);
+
+    // Listen for debrief submissions → refresh dashboard instantly
+    const onDebriefSubmitted = () => {
+      loadDashboard();
+      setToast('Intel updated! AI has re-synthesized from latest debriefs.');
+    };
+    window.addEventListener('ci:debrief-submitted', onDebriefSubmitted);
+
+    // Poll agent logs every 30 seconds for live feel
+    pollingRef.current = setInterval(() => {
+      api.getAgentStatus().then(res => {
+        if (res?.recent_steps) {
+          setAgentLogs(res.recent_steps.slice(0, 5));
+        }
+      }).catch(() => {});
+    }, 30000);
+
+    return () => {
+      window.removeEventListener('ci:profile-updated', onProfileUpdated);
+      window.removeEventListener('ci:debrief-submitted', onDebriefSubmitted);
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
   }, [loadDashboard]);
 
   const dismissPopup = () => {
@@ -167,19 +204,32 @@ export default function DashboardPage() {
     setDebriefStatus('submitting');
     try {
       const stored = getStudent();
+      // Always use the real logged-in student ID
+      const studentId = stored?.id;
+      if (!studentId) {
+        setDebriefStatus('idle');
+        return;
+      }
+
       await api.submitDebrief({
-        driveId: 'demo-drive-google',
+        driveId: drives[0]?.id || 'demo-drive-google',
         collegeId: stored?.college_id || 'college-lpu-001',
-        companyId: 'company-google-001',
+        companyId: drives[0]?.company?.id || 'company-google-001',
         roundType: debriefForm.round,
         questionsAsked: debriefForm.questions,
         topicsCovered: [],
         outcome: debriefForm.outcome,
         difficultyRating: 3,
-        studentId: stored?.id || 'demo-student-rahul',
+        studentId,
       });
+
       setDebriefStatus('done');
-      setTimeout(() => dismissPopup(), 1500);
+      // Dispatch event so dashboard (and any other subscriber) refreshes
+      window.dispatchEvent(new CustomEvent('ci:debrief-submitted'));
+      setTimeout(() => {
+        dismissPopup();
+        setDebriefStatus('idle');
+      }, 1500);
     } catch {
       setDebriefStatus('idle');
     }
@@ -205,7 +255,7 @@ export default function DashboardPage() {
       icon: '📋', sub: briefCount > 0 ? `Last: ${drives[0]?.company?.name || '–'}` : 'Run agent to generate',
     },
     {
-      label: 'Drives Registered', value: String(drives.length),
+      label: 'Drives Available', value: String(drives.length),
       icon: '🎯', sub: `${drives.filter(d => d.status === 'upcoming').length} upcoming`,
     },
     {
@@ -221,6 +271,9 @@ export default function DashboardPage() {
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full animate-pulse-slow"
             style={{ background: 'radial-gradient(ellipse, rgba(99,102,241,0.06) 0%, transparent 70%)' }} />
         </div>
+
+        {/* Toast notification */}
+        {toast && <Toast message={toast} onClose={() => setToast(null)} />}
 
         {/* Interview Day Popup */}
         {showPopup && (
@@ -289,10 +342,15 @@ export default function DashboardPage() {
                     </div>
                     <button onClick={submitDebrief} disabled={debriefStatus === 'submitting' || debriefStatus === 'done'}
                       className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-semibold transition disabled:opacity-60 flex items-center justify-center gap-2">
-                      {debriefStatus === 'done' ? '✓ Submitted!' : debriefStatus === 'submitting' ? (
-                        <><svg className="animate-spin w-3.5 h-3.5" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg> Saving...</>
+                      {debriefStatus === 'done' ? '✓ Submitted! Refreshing dashboard...' : debriefStatus === 'submitting' ? (
+                        <><svg className="animate-spin w-3.5 h-3.5" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg> Saving to database...</>
                       ) : 'Submit Debrief →'}
                     </button>
+                    {debriefStatus === 'done' && (
+                      <p className="text-xs text-emerald-400 text-center animate-fade-in-up">
+                        ✓ Saved to Supabase · Dashboard refreshing...
+                      </p>
+                    )}
                   </div>
                 </>
               )}
@@ -310,10 +368,16 @@ export default function DashboardPage() {
                 </h1>
                 <p className="text-[#6b7280] text-sm mt-0.5">{student.email} · {student.branch || 'LPU'}</p>
               </div>
-              <Link href="/demo"
-                className="px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600/20 border border-indigo-500/30 text-indigo-300 hover:bg-indigo-600/40 transition">
-                🧠 Run AI Agent →
-              </Link>
+              <div className="flex items-center gap-3">
+                <Link href="/debrief"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-600/20 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-600/40 transition">
+                  🤝 Submit Debrief
+                </Link>
+                <Link href="/demo"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600/20 border border-indigo-500/30 text-indigo-300 hover:bg-indigo-600/40 transition">
+                  🧠 Run AI Agent →
+                </Link>
+              </div>
             </div>
           )}
 
@@ -363,7 +427,7 @@ export default function DashboardPage() {
                     <div key={skill.name} className="flex items-center gap-3">
                       <span className="text-xs text-[#9b9bbb] w-24 flex-shrink-0">{skill.name}</span>
                       <div className="flex-1 h-1.5 bg-[#2a2a3d] rounded-full overflow-hidden">
-                        <div className="h-full rounded-full transition-all"
+                        <div className="h-full rounded-full transition-all duration-700"
                           style={{
                             width: `${skill.level * 100}%`,
                             background: skill.status === 'CRITICAL' ? '#f59e0b' : skill.status === 'MODERATE' ? '#6366f1' : '#10b981'
@@ -447,7 +511,16 @@ export default function DashboardPage() {
           <div className="grid grid-cols-[60%_1fr] gap-6">
             {/* Agent Activity Feed */}
             <div id="tour-agent-activity" className="card-dark rounded-2xl p-6">
-              <div className="text-[11px] uppercase tracking-widest text-[#6b7280] font-semibold mb-5">What the AI is doing for you</div>
+              <div className="flex items-center justify-between mb-5">
+                <div className="text-[11px] uppercase tracking-widest text-[#6b7280] font-semibold">What the AI is doing for you</div>
+                <button
+                  onClick={loadDashboard}
+                  className="text-[11px] text-indigo-400 hover:text-indigo-300 transition px-2 py-1 rounded border border-indigo-500/20 hover:border-indigo-500/40"
+                  title="Refresh agent logs"
+                >
+                  ↻ Refresh
+                </button>
+              </div>
               {loading ? (
                 <div className="space-y-4">
                   {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-10 w-full" />)}
@@ -495,6 +568,16 @@ export default function DashboardPage() {
                   </div>
                 </div>
               ))}
+
+              {/* Submit debrief CTA card */}
+              <div className="card-dark rounded-xl p-4 border border-emerald-500/20">
+                <div className="text-[11px] uppercase tracking-wider text-emerald-400 mb-2">Contribute</div>
+                <p className="text-xs text-[#6b7280] mb-3">Share your interview experience to improve intel for everyone.</p>
+                <Link href="/debrief"
+                  className="block text-center py-2 rounded-lg text-xs font-semibold bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 transition">
+                  + Submit Debrief
+                </Link>
+              </div>
             </div>
           </div>
         </div>

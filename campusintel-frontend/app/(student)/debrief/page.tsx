@@ -50,12 +50,17 @@ export default function DebriefPage() {
   const [showForm, setShowForm] = useState(false);
   const [recentDebriefs, setRecentDebriefs] = useState<any[]>([]);
   const [feedLoading, setFeedLoading] = useState(true);
+  const [studentInfo, setStudentInfo] = useState<{ id: string; name: string; college_id: string } | null>(null);
 
-  // Load real debriefs from Supabase
+  // Load student info from localStorage and recent debriefs from Supabase
   useEffect(() => {
+    const stored = getStudent();
+    if (stored) {
+      setStudentInfo({ id: stored.id, name: stored.name, college_id: stored.college_id });
+    }
+
     const load = async () => {
       try {
-        const stored = getStudent();
         const collegeId = stored?.college_id || 'college-lpu-001';
         const data = await api.getDebriefs(collegeId, 'company-google-001');
         if (Array.isArray(data)) setRecentDebriefs(data.slice(0, 10));
@@ -93,30 +98,42 @@ export default function DebriefPage() {
       return;
     }
 
+    // Guard: must be logged in
+    const stored = getStudent();
+    if (!stored?.id) {
+      setErrorMsg('You must be logged in to submit a debrief.');
+      return;
+    }
+
     setStatus('submitting');
     setErrorMsg('');
 
     try {
-      const stored = getStudent();
       const res = await api.submitDebrief({
         driveId: 'demo-drive-google',
-        collegeId: stored?.college_id || 'college-lpu-001',
+        collegeId: stored.college_id || 'college-lpu-001',
         companyId: 'company-google-001',
         roundType: form.roundType,
         questionsAsked: form.questionsAsked,
         topicsCovered: form.topicsCovered,
         outcome: form.outcome,
         difficultyRating: form.difficultyRating,
-        studentId: stored?.id || 'demo-student-rahul',
+        // Always the real logged-in student — never demo fallback
+        studentId: stored.id,
       });
 
       if (res.success) {
         setResult(res);
         setStatus('success');
         setShowForm(false);
+
+        // Notify dashboard to refresh
+        window.dispatchEvent(new CustomEvent('ci:debrief-submitted', {
+          detail: { studentId: stored.id, totalDebriefs: res.total_debriefs }
+        }));
+
         // Reload the feed
-        const collegeId = stored?.college_id || 'college-lpu-001';
-        const updated = await api.getDebriefs(collegeId, 'company-google-001');
+        const updated = await api.getDebriefs(stored.college_id || 'college-lpu-001', 'company-google-001');
         if (Array.isArray(updated)) setRecentDebriefs(updated.slice(0, 10));
       } else {
         setErrorMsg(res.error || 'Submission failed.');
@@ -130,6 +147,20 @@ export default function DebriefPage() {
 
   return (
     <div className="p-8 max-w-[1000px] mx-auto">
+
+      {/* Logged-in user badge */}
+      {studentInfo && (
+        <div className="mb-6 flex items-center gap-3 px-4 py-2.5 rounded-xl bg-indigo-500/5 border border-indigo-500/20 w-fit">
+          <div className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+            {studentInfo.name[0].toUpperCase()}
+          </div>
+          <span className="text-xs text-[#9b9bbb]">
+            Submitting as <span className="text-indigo-300 font-semibold">{studentInfo.name}</span>
+            <span className="text-[#4b4b6b] ml-2">· Saved to your profile</span>
+          </span>
+        </div>
+      )}
+
       {/* Hero CTA */}
       <div className="rounded-2xl p-8 mb-8 relative overflow-hidden"
         style={{ background: 'linear-gradient(135deg, #312e81, #4c1d95, #1e1b4b)', border: '1px solid rgba(139,92,246,0.3)' }}>
@@ -166,6 +197,12 @@ export default function DebriefPage() {
                 <div className="text-2xl font-display font-bold text-white">{result.total_debriefs}</div>
                 <div className="text-xs text-[#6b7280]">total debriefs</div>
               </div>
+            </div>
+
+            {/* Saved-to-DB confirmation */}
+            <div className="mb-4 flex items-center gap-2 text-xs text-emerald-400 bg-emerald-500/5 border border-emerald-500/20 rounded-lg px-3 py-2">
+              <span>✓</span>
+              <span>Saved to Supabase · Attributed to <strong>{studentInfo?.name || 'you'}</strong> · Dashboard refreshed automatically</span>
             </div>
 
             <div className="text-xs font-mono text-indigo-400 uppercase tracking-widest mb-3">
@@ -232,7 +269,14 @@ export default function DebriefPage() {
           onClick={(e) => { if (e.target === e.currentTarget) setShowForm(false); }}>
           <div className="w-full max-w-xl bg-[#0f0f1a] border border-[#2a2a3d] rounded-2xl p-8 shadow-2xl max-h-[90vh] overflow-y-auto custom-scrollbar mx-4">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="font-display text-xl text-[#e8e6f8]">Submit Interview Debrief</h2>
+              <div>
+                <h2 className="font-display text-xl text-[#e8e6f8]">Submit Interview Debrief</h2>
+                {studentInfo && (
+                  <p className="text-xs text-[#6b7280] mt-1">
+                    Saving as <span className="text-indigo-300">{studentInfo.name}</span>
+                  </p>
+                )}
+              </div>
               <button onClick={() => setShowForm(false)} className="text-[#6b7280] hover:text-white transition text-xl">×</button>
             </div>
 
@@ -302,7 +346,7 @@ export default function DebriefPage() {
               <button type="submit" disabled={status === 'submitting'}
                 className="w-full py-3 rounded-xl font-bold bg-indigo-600 hover:bg-indigo-700 text-white transition disabled:opacity-50 flex items-center justify-center gap-2">
                 {status === 'submitting' ? (
-                  <><svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg> Re-synthesizing Intel...</>
+                  <><svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg> Saving to Database...</>
                 ) : '⚡ Submit & Update Intel'}
               </button>
             </form>

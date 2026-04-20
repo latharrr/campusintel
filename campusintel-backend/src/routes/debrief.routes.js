@@ -19,12 +19,15 @@ router.post('/', async (req, res) => {
     topicsCovered,
     outcome,
     difficultyRating,
-    // optional — judge/demo mode: skip auth requirement
-    studentId = 'demo-student-rahul',
+    studentId,
   } = req.body;
 
-  if (!driveId || !companyId || !collegeId || !outcome) {
-    return res.status(400).json({ error: 'driveId, companyId, collegeId, and outcome are required.' });
+  // studentId is now required — never silently fall back to demo user
+  if (!driveId || !companyId || !collegeId || !outcome || !studentId) {
+    return res.status(400).json({
+      error: 'driveId, companyId, collegeId, outcome, and studentId are all required.',
+      hint: studentId ? null : 'You must be logged in to submit a debrief.',
+    });
   }
 
   if (!['selected', 'rejected', 'waiting', 'withdrew'].includes(outcome)) {

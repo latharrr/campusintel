@@ -10,6 +10,22 @@ export default function LoginPage() {
   const [errorMsg, setErrorMsg] = useState('');
   const router = useRouter();
 
+  const routeAfterLogin = (student: any) => {
+    const role = student.role;
+    // TPC admin / super admin → TPC dashboard
+    if (role === 'tpc_admin' || role === 'super_admin') {
+      router.push('/tpc/dashboard');
+      return;
+    }
+    // Students without a profile → onboarding
+    if (student.current_state === 'UNAWARE') {
+      router.push('/onboarding');
+      return;
+    }
+    // Default: student dashboard
+    router.push('/dashboard');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = email.trim().toLowerCase();
@@ -23,17 +39,7 @@ export default function LoginPage() {
 
       if (res.success && res.student) {
         setStudent(res.student);
-        // Route based on role
-        if (res.student.role === 'tpc_admin' || res.student.role === 'super_admin') {
-          router.push('/dashboard');
-        } else {
-          // Students without a profile go to onboarding
-          if (res.student.current_state === 'UNAWARE') {
-            router.push('/onboarding');
-          } else {
-            router.push('/dashboard');
-          }
-        }
+        routeAfterLogin(res.student);
       } else {
         setErrorMsg(res.error || 'No account found. Please register first.');
         setStatus('error');
@@ -44,24 +50,6 @@ export default function LoginPage() {
     }
   };
 
-  const quickLogin = async (demoEmail: string) => {
-    setEmail(demoEmail);
-    setStatus('loading');
-    setErrorMsg('');
-    try {
-      const res = await api.login(demoEmail);
-      if (res.success && res.student) {
-        setStudent(res.student);
-        router.push('/dashboard');
-      } else {
-        setErrorMsg(res.error || 'Demo login failed.');
-        setStatus('error');
-      }
-    } catch {
-      setErrorMsg('Could not reach server.');
-      setStatus('error');
-    }
-  };
 
   return (
     <div className="min-h-screen bg-[#070711] flex flex-col items-center justify-center relative overflow-hidden">
@@ -126,32 +114,6 @@ export default function LoginPage() {
             ) : 'Sign In →'}
           </button>
         </form>
-
-        <div className="flex items-center gap-3 my-5">
-          <div className="flex-1 h-px bg-[#2a2a3d]" />
-          <span className="text-[#4b4b6b] text-xs">quick demo</span>
-          <div className="flex-1 h-px bg-[#2a2a3d]" />
-        </div>
-
-        {/* Demo quick-login buttons */}
-        <div className="space-y-2">
-          <button
-            id="demo-student-btn"
-            onClick={() => quickLogin('rahul@lpu.in')}
-            disabled={status === 'loading'}
-            className="w-full h-11 bg-transparent border border-[#2a2a3d] rounded-[10px] text-[#c4c4d8] text-sm font-medium flex items-center justify-center gap-3 transition hover:bg-white/5 disabled:opacity-50"
-          >
-            <span className="text-base">🎓</span> Sign in as Rahul (Student demo)
-          </button>
-          <button
-            id="demo-tpc-btn"
-            onClick={() => quickLogin('tpc@lpu.in')}
-            disabled={status === 'loading'}
-            className="w-full h-11 bg-transparent border border-[#2a2a3d] rounded-[10px] text-[#c4c4d8] text-sm font-medium flex items-center justify-center gap-3 transition hover:bg-white/5 disabled:opacity-50"
-          >
-            <span className="text-base">🏛️</span> Sign in as TPC Admin demo
-          </button>
-        </div>
 
         <p className="text-center mt-6 text-[13px] text-[#4b4b6b]">
           New to CampusIntel?{' '}

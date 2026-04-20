@@ -9,6 +9,7 @@
   .animate-fade-in-up { animation: fadeInUp 0.4s ease-out forwards; }
   .step-card-enter { animation: stepCardEnter 0.3s ease-out forwards; }
   .animate-pulse-slow { animation: pulseSlow 8s ease-in-out infinite; }
+  .animate-shimmer { animation: shimmer 2.5s linear infinite; }
 
   .font-display { font-family: var(--font-fraunces), Georgia, serif; }
 
@@ -56,9 +57,15 @@
   50% { opacity: 0.1; }
 }
 
+/* Fixed: was referenced in landing page but never defined */
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
+}
+
+/* Fixed: used for SVG dashed-line animations on landing page */
+@keyframes dash {
+  to { stroke-dashoffset: -100; }
 }
 
 body {
