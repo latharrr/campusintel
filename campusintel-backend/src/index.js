@@ -18,17 +18,7 @@ const PORT = process.env.PORT || 3001;
 // ── Middleware ──
 app.use(
   cors({
-    origin: [
-      process.env.FRONTEND_URL || 'http://localhost:3000',
-      // Vercel deployments
-      'https://campusintel.vercel.app',
-      'https://campusintel-tan.vercel.app',
-      /\.vercel\.app$/,
-      // Custom domains
-      'https://hck2ai.deepanshulathar.dev',
-      'https://www.hck2ai.deepanshulathar.dev',
-      /\.deepanshulathar\.dev$/,
-    ],
+    origin: true, // reflect any origin — tighten after confirming end-to-end works
     credentials: true,
   })
 );
