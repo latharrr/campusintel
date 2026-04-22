@@ -424,21 +424,33 @@ export async function runAgentLoop({ studentId, driveId, collegeId }) {
     brief = buildFallbackBrief(student, intel, drive);
   }
 
-  // Save brief to DB
-  const { data: savedBrief } = await supabase
-    .from('skill_assessments')
-    .insert({
-      student_id: studentId,
-      college_id: student.college_id,
-      drive_id: driveId,
-      topic_assessed: 'FULL_BRIEF',
-      questions: brief,
-      overall_score: readinessScore,
-      status: 'completed',
-      completed_at: new Date().toISOString(),
-    })
-    .select()
-    .single();
+  // Save brief to DB — log any error so it's visible in Railway logs
+  let savedBrief = null;
+  try {
+    const { data, error: insertErr } = await supabase
+      .from('skill_assessments')
+      .insert({
+        student_id: studentId,
+        college_id: student.college_id,
+        drive_id: driveId,
+        topic_assessed: 'FULL_BRIEF',
+        questions: brief,
+        overall_score: readinessScore,
+        status: 'completed',
+        completed_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (insertErr) {
+      console.error('[Agent] Failed to save brief to skill_assessments:', insertErr.message, insertErr.details);
+    } else {
+      savedBrief = data;
+      console.log('[Agent] Brief saved — id:', savedBrief?.id);
+    }
+  } catch (saveErr) {
+    console.error('[Agent] Brief save threw:', saveErr.message);
+  }
 
   await logStep({
     sessionId,

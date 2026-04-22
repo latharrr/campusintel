@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { getStudent } from '@/lib/auth';
 
@@ -15,6 +15,63 @@ const TABS = ['Overview', 'Topics', 'Prep Plan', 'Sample Questions', 'Red Flags'
 
 function Skeleton({ className }: { className?: string }) {
   return <div className={`animate-pulse bg-[#2a2a3d] rounded-lg ${className}`} />;
+}
+
+/** Triggers the agent for the real logged-in student + their first registered drive */
+function GenerateBriefButton({ driveId }: { driveId: string }) {
+  const [status, setStatus] = useState<'idle' | 'running' | 'done' | 'error'>('idle');
+  const router = useRouter();
+
+  const handleGenerate = async () => {
+    const student = getStudent();
+    if (!student?.id) { setStatus('error'); return; }
+
+    setStatus('running');
+    try {
+      // Use the driveId from URL if real, else find first registration
+      let targetDriveId = driveId;
+      if (!driveId || driveId === 'demo-drive-google') {
+        const regs = await api.getStudentRegistrations(student.id).catch(() => []);
+        const firstReg = Array.isArray(regs) ? regs[0] : null;
+        targetDriveId = firstReg?.drive_id || driveId;
+      }
+
+      await api.triggerAgentForStudent(student.id, targetDriveId);
+      setStatus('done');
+      // Reload page after 4s to show the new brief
+      setTimeout(() => router.refresh(), 4000);
+    } catch (e: any) {
+      console.error('[GenerateBrief]', e);
+      setStatus('error');
+    }
+  };
+
+  if (status === 'running') return (
+    <div className="mt-4 flex items-center gap-3 justify-center">
+      <svg className="animate-spin h-5 w-5 text-indigo-400" fill="none" viewBox="0 0 24 24">
+        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+      </svg>
+      <span className="text-indigo-300 text-sm">AI Agent running… this takes ~20 seconds</span>
+    </div>
+  );
+
+  if (status === 'done') return (
+    <div className="mt-4 text-emerald-400 text-sm">✓ Brief generated! Reloading…</div>
+  );
+
+  if (status === 'error') return (
+    <div className="mt-4 text-red-400 text-sm">Failed to run agent. Check Railway logs.</div>
+  );
+
+  return (
+    <button
+      onClick={handleGenerate}
+      className="inline-flex items-center gap-2 mt-4 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-semibold transition"
+    >
+      ✨ Generate My Brief
+    </button>
+  );
 }
 
 export default function BriefPage() {
@@ -91,12 +148,7 @@ export default function BriefPage() {
         <div className="rounded-2xl p-8 border border-amber-500/30 bg-amber-500/5 text-center">
           <div className="text-4xl mb-4">⚠️</div>
           <div className="text-lg font-semibold text-[#e8e6f8] mb-2">{error}</div>
-          <a
-            href="/demo"
-            className="inline-flex items-center gap-2 mt-4 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-semibold transition"
-          >
-            Run AI Agent →
-          </a>
+          <GenerateBriefButton driveId={driveId} />
         </div>
       </div>
     );
