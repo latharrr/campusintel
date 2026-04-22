@@ -60,7 +60,7 @@ export function getCollegeId(): string {
 
 /** Is the user currently logged in? */
 export function isLoggedIn(): boolean {
-  return getStudent() !== null && getToken() !== null;
+  return getStudent() !== null;
 }
 
 /** Update stored profile fields (e.g. after resume upload) */

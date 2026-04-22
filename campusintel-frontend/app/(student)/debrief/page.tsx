@@ -42,6 +42,8 @@ export default function DebriefPage() {
     topicsCovered: [] as string[],
     outcome: 'selected',
     difficultyRating: 3,
+    selectedDriveId: '',
+    selectedCompanyId: '',
   });
 
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
@@ -51,8 +53,9 @@ export default function DebriefPage() {
   const [recentDebriefs, setRecentDebriefs] = useState<any[]>([]);
   const [feedLoading, setFeedLoading] = useState(true);
   const [studentInfo, setStudentInfo] = useState<{ id: string; name: string; college_id: string } | null>(null);
+  const [registeredDrives, setRegisteredDrives] = useState<any[]>([]);
 
-  // Load student info from localStorage and recent debriefs from Supabase
+  // Load student info + their registered drives + recent debriefs
   useEffect(() => {
     const stored = getStudent();
     if (stored) {
@@ -62,8 +65,28 @@ export default function DebriefPage() {
     const load = async () => {
       try {
         const collegeId = stored?.college_id || 'college-lpu-001';
+
+        // Load registered drives for this student
+        if (stored?.id) {
+          const regs = await api.getStudentRegistrations(stored.id);
+          if (Array.isArray(regs) && regs.length > 0) {
+            const drives = regs
+              .filter(r => r.campus_drives)
+              .map(r => ({
+                id: r.drive_id,
+                companyId: r.campus_drives?.company_id || '',
+                companyName: r.campus_drives?.companies?.name || r.campus_drives?.company_id || 'Unknown',
+              }));
+            setRegisteredDrives(drives);
+            // Pre-select first registered drive
+            if (drives.length > 0) {
+              setForm(f => ({ ...f, selectedDriveId: drives[0].id, selectedCompanyId: drives[0].companyId }));
+            }
+          }
+        }
+
+        // Load recent debriefs for the college
         const payload = await api.getDebriefs(collegeId, 'company-google-001');
-        // Handle both flat array and paginated { data: [] } shape
         const list = Array.isArray(payload) ? payload : (payload?.data || []);
         if (Array.isArray(list)) setRecentDebriefs(list.slice(0, 10));
       } catch (e) {
@@ -111,16 +134,18 @@ export default function DebriefPage() {
     setErrorMsg('');
 
     try {
+      const driveId = form.selectedDriveId || registeredDrives[0]?.id || 'demo-drive-google';
+      const companyId = form.selectedCompanyId || registeredDrives[0]?.companyId || 'company-google-001';
+
       const res = await api.submitDebrief({
-        driveId: 'demo-drive-google',
+        driveId,
         collegeId: stored.college_id || 'college-lpu-001',
-        companyId: 'company-google-001',
+        companyId,
         roundType: form.roundType,
         questionsAsked: form.questionsAsked,
         topicsCovered: form.topicsCovered,
         outcome: form.outcome,
         difficultyRating: form.difficultyRating,
-        // Always the real logged-in student — never demo fallback
         studentId: stored.id,
       });
 
@@ -284,6 +309,30 @@ export default function DebriefPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
+
+              {/* Drive Selector — only if student has registrations */}
+              {registeredDrives.length > 0 && (
+                <div>
+                  <div className="text-xs text-[#6b7280] mb-2 font-semibold uppercase tracking-wider">Which Drive?</div>
+                  <div className="flex flex-wrap gap-2">
+                    {registeredDrives.map(d => (
+                      <button
+                        key={d.id}
+                        type="button"
+                        onClick={() => setForm(f => ({ ...f, selectedDriveId: d.id, selectedCompanyId: d.companyId }))}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium transition border ${
+                          form.selectedDriveId === d.id
+                            ? 'bg-indigo-600/20 border-indigo-500/60 text-indigo-300'
+                            : 'border-[#2a2a3d] text-[#8b8b9f] hover:border-indigo-500/40'
+                        }`}
+                      >
+                        {d.companyName}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Round Type */}
               <div>
                 <div className="text-xs text-[#6b7280] mb-2 font-semibold uppercase tracking-wider">Round Type</div>

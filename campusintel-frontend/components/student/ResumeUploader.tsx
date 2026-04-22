@@ -9,7 +9,7 @@ type ResumeUploaderProps = {
 };
 
 export default function ResumeUploader({
-  studentId = 'demo-student-rahul',
+  studentId,
   onSkillsExtracted,
 }: ResumeUploaderProps) {
   const [status, setStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
@@ -20,6 +20,11 @@ export default function ResumeUploader({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const processFile = async (file: File) => {
+    if (!studentId) {
+      setErrorMsg('You must be logged in to upload a resume.');
+      setStatus('error');
+      return;
+    }
     if (file.type !== 'application/pdf') {
       setErrorMsg('Please upload a PDF file.');
       setStatus('error');
@@ -163,7 +168,7 @@ export default function ResumeUploader({
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
           </svg>
           <div className="text-sm font-medium text-amber-300">Extracting skills from {fileName}...</div>
-          <div className="text-xs text-[#6b7280]">Gemini is reading your resume</div>
+          <div className="text-xs text-[#6b7280]">Grok AI is reading your resume</div>
         </div>
       ) : (
         <div className="flex flex-col items-center gap-3">
