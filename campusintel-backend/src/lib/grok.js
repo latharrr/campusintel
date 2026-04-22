@@ -83,9 +83,7 @@ Return ONLY valid JSON. No markdown, no explanation.`;
   });
 
   const raw = response.choices[0].message.content.trim();
-  // Strip potential markdown code fences
-  const json = raw.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim();
-  return JSON.parse(json);
+  return extractJSON(raw);
 }
 
 /**
@@ -120,8 +118,7 @@ Return ONLY valid JSON.`;
   });
 
   const raw = response.choices[0].message.content.trim();
-  const json = raw.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim();
-  return JSON.parse(json);
+  return extractJSON(raw);
 }
 
 /**
@@ -159,8 +156,7 @@ Return ONLY valid JSON with 0.0-1.0 values.`;
   });
 
   const raw = response.choices[0].message.content.trim();
-  const json = raw.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim();
-  return JSON.parse(json);
+  return extractJSON(raw);
 }
 
 /**
@@ -193,12 +189,39 @@ Only include categories that are relevant. Return ONLY valid JSON.`;
   });
 
   const raw = response.choices[0].message.content.trim();
-  const json = raw.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim();
   try {
-    return JSON.parse(json);
+    return extractJSON(raw);
   } catch {
     return { technical: [], behavioral: [] };
   }
+}
+
+
+/**
+ * Robustly extract JSON from a model response that may contain
+ * extra text, markdown code fences, or trailing commentary.
+ */
+function extractJSON(raw) {
+  // Strip markdown code fences if present
+  let text = raw.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
+
+  // Try direct parse first (fast path)
+  try { return JSON.parse(text); } catch (_) { /* fall through */ }
+
+  // Extract first balanced {...} or [...] block
+  const start = text.search(/[\[{]/);
+  if (start === -1) throw new SyntaxError('No JSON object found in model response');
+
+  const openChar = text[start];
+  const closeChar = openChar === '{' ? '}' : ']';
+  let depth = 0;
+  let end = -1;
+  for (let i = start; i < text.length; i++) {
+    if (text[i] === openChar) depth++;
+    else if (text[i] === closeChar) { depth--; if (depth === 0) { end = i; break; } }
+  }
+  if (end === -1) throw new SyntaxError('Unbalanced JSON in model response');
+  return JSON.parse(text.slice(start, end + 1));
 }
 
 export default client;
