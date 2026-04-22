@@ -125,34 +125,47 @@ Return ONLY valid JSON.`;
  * Extract skills from resume text using Grok
  */
 export async function extractSkillsFromResume(resumeText) {
-  const prompt = `You are a technical recruiter. Analyze this resume and extract skill proficiency levels.
+  const prompt = `You are a strict technical recruiter scoring a candidate's resume. Assign proficiency scores that VARY significantly based on evidence in the resume.
+
+SCORING RULES (strictly enforce these):
+- 0.85–1.0: Core skill with multiple projects + years of experience + advanced usage
+- 0.65–0.84: Used in real projects with moderate complexity
+- 0.45–0.64: Mentioned in projects but not deeply demonstrated  
+- 0.25–0.44: Listed as known but no real project evidence
+- 0.05–0.24: Barely mentioned or implied only
+- DO NOT give the same score to more than 2 skills. Scores MUST vary.
 
 RESUME:
 ${resumeText.substring(0, 4000)}
 
-Return a JSON object with skill names as keys and proficiency (0.0 to 1.0) as values.
-Base proficiency on: projects mentioned, work experience, education, certifications.
-Include: dsa, system_design, dbms, os, networking, oops, sql, behavioral, and any specific languages/frameworks mentioned.
+Analyze the resume carefully. For each skill, look for:
+1. Number of projects using it
+2. Complexity of usage (basic vs advanced)
+3. Years of experience
+4. Whether it's a primary tool or just supporting
 
-Example:
+Return ONLY a JSON object. Include these core categories plus any frameworks/languages found:
+dsa, system_design, dbms, os, networking, oops, sql, behavioral
+
+Example of correctly VARIED output (do not copy these values, derive from the actual resume):
 {
-  "dsa": 0.65,
-  "system_design": 0.4,
-  "dbms": 0.7,
-  "os": 0.55,
-  "sql": 0.8,
-  "behavioral": 0.6,
-  "python": 0.75,
-  "javascript": 0.5
+  "dsa": 0.72,
+  "system_design": 0.31,
+  "dbms": 0.58,
+  "os": 0.42,
+  "sql": 0.81,
+  "python": 0.88,
+  "javascript": 0.64,
+  "behavioral": 0.55
 }
 
-Return ONLY valid JSON with 0.0-1.0 values.`;
+Return ONLY valid JSON with 0.0–1.0 values. Scores must be differentiated.`;
 
   const response = await client.chat.completions.create({
     model: GROK_FAST,
     messages: [{ role: 'user', content: prompt }],
-    temperature: 0.1,
-    max_tokens: 500,
+    temperature: 0.2,
+    max_tokens: 600,
   });
 
   const raw = response.choices[0].message.content.trim();
