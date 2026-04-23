@@ -1,6 +1,6 @@
 'use client';
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useState, useEffect, useCallback } from 'react';
+import { useParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import { getStudent } from '@/lib/auth';
 
@@ -18,9 +18,8 @@ function Skeleton({ className }: { className?: string }) {
 }
 
 /** Triggers the agent for the real logged-in student + their first registered drive */
-function GenerateBriefButton({ driveId }: { driveId: string }) {
+function GenerateBriefButton({ driveId, onGenerated }: { driveId: string; onGenerated: () => Promise<void> | void }) {
   const [status, setStatus] = useState<'idle' | 'running' | 'done' | 'error'>('idle');
-  const router = useRouter();
 
   const handleGenerate = async () => {
     const student = getStudent();
@@ -37,9 +36,20 @@ function GenerateBriefButton({ driveId }: { driveId: string }) {
       }
 
       await api.triggerAgentForStudent(student.id, targetDriveId);
+
+      // Poll for the brief so the page updates itself when data is ready.
+      const start = Date.now();
+      while (Date.now() - start < 30000) {
+        const briefs = await api.getBrief(student.id).catch(() => []);
+        if (Array.isArray(briefs) && briefs.length > 0) {
+          const hasTarget = briefs.some((b: any) => b.drive_id === targetDriveId);
+          if (hasTarget || targetDriveId === driveId) break;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      }
+
+      await onGenerated();
       setStatus('done');
-      // Reload page after 4s to show the new brief
-      setTimeout(() => router.refresh(), 4000);
     } catch (e: any) {
       console.error('[GenerateBrief]', e);
       setStatus('error');
@@ -57,7 +67,7 @@ function GenerateBriefButton({ driveId }: { driveId: string }) {
   );
 
   if (status === 'done') return (
-    <div className="mt-4 text-emerald-400 text-sm">✓ Brief generated! Reloading…</div>
+    <div className="mt-4 text-emerald-400 text-sm">✓ Brief generated! Updated.</div>
   );
 
   if (status === 'error') return (
@@ -84,51 +94,52 @@ export default function BriefPage() {
   const [tab, setTab] = useState('Overview');
   const [expanded, setExpanded] = useState<number | null>(null);
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const student = getStudent();
-        if (!student?.id) {
-          setError('Please log in to view your brief');
-          setLoading(false);
-          return;
-        }
+  const loadBrief = useCallback(async () => {
+    setLoading(true);
+    setError('');
 
-        // Get briefs for this student
-        const briefs = await api.getBrief(student.id);
-        if (!Array.isArray(briefs) || briefs.length === 0) {
-          setError('No brief generated yet. Please run the agent from the Agent Trace page.');
-          setLoading(false);
-          return;
-        }
-
-        // Find the brief for this drive, or use the latest
-        const targetBrief = briefs.find(b => b.drive_id === driveId) || briefs[0];
-        const briefData = targetBrief.questions; // brief content is stored in questions field
-
-        if (!briefData || typeof briefData !== 'object') {
-          setError('Brief data is malformed. Please re-run the agent.');
-          setLoading(false);
-          return;
-        }
-
-        setBrief(briefData);
-
-        // Get drive info
-        try {
-          const driveData = await api.getDriveDetail(driveId);
-          setDrive(driveData);
-        } catch {
-          // Drive might be different from brief's drive, ignore
-        }
-      } catch (err: any) {
-        setError(err.message || 'Failed to load brief');
-      } finally {
-        setLoading(false);
+    try {
+      const student = getStudent();
+      if (!student?.id) {
+        setError('Please log in to view your brief');
+        return;
       }
-    };
-    load();
+
+      // Get briefs for this student
+      const briefs = await api.getBrief(student.id);
+      if (!Array.isArray(briefs) || briefs.length === 0) {
+        setError('No brief generated yet. Please run the agent from the Agent Trace page.');
+        return;
+      }
+
+      // Find the brief for this drive, or use the latest
+      const targetBrief = briefs.find(b => b.drive_id === driveId) || briefs[0];
+      const briefData = targetBrief.questions; // brief content is stored in questions field
+
+      if (!briefData || typeof briefData !== 'object') {
+        setError('Brief data is malformed. Please re-run the agent.');
+        return;
+      }
+
+      setBrief(briefData);
+
+      // Get drive info
+      try {
+        const driveData = await api.getDriveDetail(driveId);
+        setDrive(driveData);
+      } catch {
+        // Drive might be different from brief's drive, ignore
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to load brief');
+    } finally {
+      setLoading(false);
+    }
   }, [driveId]);
+
+  useEffect(() => {
+    loadBrief();
+  }, [loadBrief]);
 
   if (loading) {
     return (
@@ -148,7 +159,7 @@ export default function BriefPage() {
         <div className="rounded-2xl p-8 border border-amber-500/30 bg-amber-500/5 text-center">
           <div className="text-4xl mb-4">⚠️</div>
           <div className="text-lg font-semibold text-[#e8e6f8] mb-2">{error}</div>
-          <GenerateBriefButton driveId={driveId} />
+          <GenerateBriefButton driveId={driveId} onGenerated={loadBrief} />
         </div>
       </div>
     );

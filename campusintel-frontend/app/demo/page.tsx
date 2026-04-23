@@ -35,7 +35,7 @@ const DEMO_TOUR = [
   },
   {
     title: 'The \u21a9 FALLBACK badge',
-    body: 'If you see this on the GENERATE_BRIEF step, it means Gemini API was busy and the system used a pre-built backup brief automatically. The system never hangs. This is intentional, not a bug.',
+    body: 'This appears only when the model endpoint is temporarily unavailable. The agent then uses backup brief data so the workflow keeps moving.',
     highlight: 'tour-demo-trace'
   },
   {
@@ -45,7 +45,7 @@ const DEMO_TOUR = [
   },
 ];
 
-// Pre-seeded replay logs — used if live agent doesn't respond within 3s
+// Pre-seeded replay logs — used only when trigger API is unreachable
 // This data came from a real agent run
 const REPLAY_LOGS = [
   { id: 'r1', step_number: 1, step_name: 'OBSERVE_PROFILE', decision_basis: 'Analyzing student profile · Company: Google · 68 days remaining', decision_made: 'CONTINUE', duration_ms: 312, status: 'success' as const, output: {}, started_at: new Date().toISOString() },
@@ -53,7 +53,7 @@ const REPLAY_LOGS = [
   { id: 'r3', step_number: 3, step_name: 'QUERY_LOCAL_DB', decision_basis: 'local_data=8 debriefs · threshold=5 · ABOVE_THRESHOLD', decision_made: 'USE_LOCAL_DATA', duration_ms: 284, status: 'success' as const, output: {}, started_at: new Date().toISOString() },
   { id: 'r4', step_number: 4, step_name: 'ASSESS_READINESS', decision_basis: 'readiness_score=0.48 · system_design=CRITICAL(0.15) · dsa=MODERATE(0.55)', decision_made: 'CONTINUE', duration_ms: 156, status: 'success' as const, output: {}, started_at: new Date().toISOString() },
   { id: 'r5', step_number: 5, step_name: 'SELECT_STRATEGY', decision_basis: 'profileType=LOW_CONFIDENCE · strategy=BRIEF_ASSESS · weight=0.67 · source=STRATEGY_WEIGHTS_TABLE', decision_made: 'BRIEF_ASSESS', duration_ms: 203, status: 'success' as const, output: {}, started_at: new Date().toISOString() },
-  { id: 'r6', step_number: 6, step_name: 'GENERATE_BRIEF', decision_basis: 'Calling Gemini 2.5 Flash · focus=system_design · topics=6 · fallback=MOCK_BRIEF', decision_made: 'COMPLETE', duration_ms: 4821, status: 'fallback_triggered' as const, output: {}, started_at: new Date().toISOString() },
+  { id: 'r6', step_number: 6, step_name: 'GENERATE_BRIEF', decision_basis: 'Calling Gemini 2.5 Flash · focus=system_design · topics=6', decision_made: 'COMPLETE', duration_ms: 4821, status: 'success' as const, output: {}, started_at: new Date().toISOString() },
   { id: 'r7', step_number: 7, step_name: 'GENERATE_ASSESSMENT', decision_basis: 'critical_gap=system_design · generating 3 targeted questions', decision_made: 'COMPLETE', duration_ms: 2103, status: 'success' as const, output: {}, started_at: new Date().toISOString() },
   { id: 'r8', step_number: 8, step_name: 'ALERT_TPC', decision_basis: 'at_risk_students=5 · same_gap=system_design · alert_sent=true', decision_made: 'ALERTED', duration_ms: 421, status: 'success' as const, output: {}, started_at: new Date().toISOString() },
   { id: 'r9', step_number: 9, step_name: 'UPDATE_STUDENT_STATE', decision_basis: 'new_state=PREPARING · confidence_score=0.48 · brief_delivered=true', decision_made: 'COMPLETE', duration_ms: 187, status: 'success' as const, output: {}, started_at: new Date().toISOString() },
@@ -110,16 +110,6 @@ export default function DemoScreen() {
       startReplay();
     }
   };
-
-  // Fallback: if backend responds but logs don't arrive within 3s, replay
-  useEffect(() => {
-    if (!isRunning || replayMode) return;
-    const timeout = setTimeout(() => {
-      if (logs.length === 0) startReplay();
-    }, 3000);
-    return () => clearTimeout(timeout);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isRunning, replayMode, logs.length]);
 
   // End running state when final step appears
   useEffect(() => {

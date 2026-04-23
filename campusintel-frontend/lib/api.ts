@@ -1,11 +1,21 @@
 // campusintel-frontend/lib/api.ts — Production API client
+import { getToken } from './auth';
+
 const RawApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 const API_URL = RawApiUrl.replace(/\/+$/, '');
+
+function buildHeaders(includeJsonContentType = false) {
+  const token = getToken();
+  const headers: Record<string, string> = {};
+  if (includeJsonContentType) headers['Content-Type'] = 'application/json';
+  if (token) headers.Authorization = `Bearer ${token}`;
+  return headers;
+}
 
 async function post(path: string, body?: object) {
   const res = await fetch(`${API_URL}${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: buildHeaders(true),
     body: body ? JSON.stringify(body) : undefined,
   });
   if (!res.ok) {
@@ -16,7 +26,9 @@ async function post(path: string, body?: object) {
 }
 
 async function get(path: string) {
-  const res = await fetch(`${API_URL}${path}`);
+  const res = await fetch(`${API_URL}${path}`, {
+    headers: buildHeaders(false),
+  });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }));
     throw new Error(err.error || `HTTP ${res.status}`);

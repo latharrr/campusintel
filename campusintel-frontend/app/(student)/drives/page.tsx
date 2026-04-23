@@ -152,6 +152,7 @@ export default function DrivesPage() {
         <div className="grid grid-cols-3 gap-4">
           {filtered.map(d => {
             const days = daysUntil(d.drive_date);
+            const isRegistrationClosed = d.status === 'completed';
             const logoHost = d.company?.website
               ? d.company.website.replace(/^https?:\/\//, '').split('/')[0]
               : `${d.company?.normalized_name || d.company?.name?.toLowerCase()}.com`;
@@ -220,11 +221,11 @@ export default function DrivesPage() {
                     </Link>
                   ) : (
                     <button
-                      disabled={registering === d.id || days < 0}
+                      disabled={registering === d.id || isRegistrationClosed}
                       onClick={() => handleRegister(d.id)}
                       className="text-xs text-[#6b7280] hover:text-[#c4c4d8] border border-[#2a2a3d] hover:border-indigo-500/40 px-3 py-1 rounded-lg transition disabled:opacity-50"
                     >
-                      {registering === d.id ? 'Registering...' : 'Register →'}
+                      {registering === d.id ? 'Registering...' : isRegistrationClosed ? 'Closed' : 'Register →'}
                     </button>
                   )}
                 </div>
