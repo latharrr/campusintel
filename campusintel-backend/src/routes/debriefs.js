@@ -91,14 +91,14 @@ router.post('/', async (req, res) => {
       .eq('company_id', companyId);
 
     // Get latest topic synthesis
-    const { data: intel } = await supabase
+    const { data: intelRecord } = await supabase
       .from('college_company_intel')
       .select('top_topics')
       .eq('college_id', collegeId)
       .eq('company_id', companyId)
       .single();
 
-    const synthesizedTopics = (intel?.top_topics || []).map((t) => ({
+    const synthesizedTopics = (intelRecord?.top_topics || []).map((t) => ({
       topic: t.topic,
       frequency: t.frequency,
     }));

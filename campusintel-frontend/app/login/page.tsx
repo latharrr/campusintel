@@ -11,9 +11,8 @@ export default function LoginPage() {
   const router = useRouter();
 
   const routeAfterLogin = (student: any) => {
-    const role = student.role;
-    // TPC admin / super admin → TPC dashboard
-    if (role === 'tpc_admin' || role === 'super_admin') {
+    // Only tpc@lpu.in is allowed into the TPC dashboard
+    if (student.email === 'tpc@lpu.in') {
       router.push('/tpc/dashboard');
       return;
     }

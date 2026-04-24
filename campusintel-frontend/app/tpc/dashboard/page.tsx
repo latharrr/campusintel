@@ -1,13 +1,7 @@
 'use client';
-import { useState } from 'react';
-
-const STUDENTS = [
-  { name: 'Rahul Sharma', branch: 'CSE', cgpa: 7.8, company: 'Google', score: 0.48, state: 'ASSESSED' },
-  { name: 'Priya Mehta', branch: 'CSE', cgpa: 9.1, company: 'Google', score: 0.82, state: 'INTERVIEW_READY' },
-  { name: 'Arjun Singh', branch: 'IT', cgpa: 7.5, company: 'Infosys', score: 0.6, state: 'PREPARING' },
-  { name: 'Sneha Gupta', branch: 'CSE', cgpa: 8.4, company: 'Amazon', score: 0.35, state: 'TARGETED' },
-  { name: 'Dev Patel', branch: 'ECE', cgpa: 7.2, company: 'Wipro', score: 0.72, state: 'PREPARING' },
-];
+import { useState, useEffect } from 'react';
+import { api } from '@/lib/api';
+import { getStudent } from '@/lib/auth';
 
 const STATES = ['UNAWARE', 'PROFILED', 'TARGETED', 'ASSESSED', 'PREPARING', 'INTERVIEW_READY'];
 
@@ -52,6 +46,32 @@ function ScoreDot({ score }: { score: number }) {
 
 export default function TpcDashboardPage() {
   const [activeTab, setActiveTab] = useState('📊 Overview');
+  const [students, setStudents] = useState<any[]>([]);
+
+  useEffect(() => {
+    const loadStudents = async () => {
+      try {
+        const admin = getStudent();
+        const collegeId = admin?.college_id || 'college-lpu-001';
+        const data = await api.getStudents(collegeId);
+        
+        if (Array.isArray(data)) {
+          const mapped = data.map(s => ({
+            name: s.name || 'Unknown',
+            branch: s.branch || 'N/A',
+            cgpa: s.cgpa || '-',
+            company: 'Active Drives', // Since users table doesn't hold direct company association
+            score: s.confidence_score || 0,
+            state: s.current_state || 'UNAWARE',
+          }));
+          setStudents(mapped);
+        }
+      } catch (err) {
+        console.error('Failed to fetch students:', err);
+      }
+    };
+    loadStudents();
+  }, []);
 
   return (
     <div className="flex min-h-screen bg-[#07070f]">
@@ -116,14 +136,14 @@ export default function TpcDashboardPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-[#1e1e30]">
-                        {STUDENTS.map(s => {
+                        {students.slice(0, 10).map((s, i) => {
                           const stStyle = STATE_STYLE[s.state] || STATE_STYLE.UNAWARE;
                           return (
-                            <tr key={s.name} className="hover:bg-white/[0.02] transition">
+                            <tr key={i} className="hover:bg-white/[0.02] transition">
                               <td className="py-3 pr-4">
                                 <div className="flex items-center gap-2">
                                   <div className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
-                                    {s.name[0]}
+                                    {s.name[0]?.toUpperCase() || '?'}
                                   </div>
                                   <span className="text-[#e8e6f8] font-medium truncate">{s.name}</span>
                                 </div>
@@ -242,14 +262,14 @@ export default function TpcDashboardPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#1e1e30]">
-                    {[...STUDENTS, ...STUDENTS].map((s, i) => {
+                    {students.map((s, i) => {
                       const stStyle = STATE_STYLE[s.state] || STATE_STYLE.UNAWARE;
                       return (
                         <tr key={i} className="hover:bg-white/[0.02] transition">
                           <td className="py-3 pr-4">
                             <div className="flex items-center gap-2">
                               <div className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
-                                {s.name[0]}
+                                {s.name[0]?.toUpperCase() || '?'}
                               </div>
                               <span className="text-[#e8e6f8] font-medium truncate">{s.name}</span>
                             </div>
