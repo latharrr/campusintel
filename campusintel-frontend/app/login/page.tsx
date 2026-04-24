@@ -43,8 +43,14 @@ export default function LoginPage() {
         setErrorMsg(res.error || 'No account found. Please register first.');
         setStatus('error');
       }
-    } catch {
-      setErrorMsg('Could not reach server. Try again in a moment.');
+    } catch (err: any) {
+      const msg = err?.message || '';
+      // API errors (404, 400) throw with the backend's error message
+      if (msg && !msg.includes('fetch') && !msg.includes('network') && !msg.includes('Failed to fetch')) {
+        setErrorMsg(msg);
+      } else {
+        setErrorMsg('Could not reach server. Try again in a moment.');
+      }
       setStatus('error');
     }
   };
