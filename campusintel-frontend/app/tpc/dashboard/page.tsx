@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { getStudent } from '@/lib/auth';
 import TpcDashboard from '@/components/tpc/TpcDashboard';
@@ -46,6 +47,7 @@ function ScoreDot({ score }: { score: number }) {
 }
 
 export default function TpcDashboardPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState('📊 Overview');
   const [students, setStudents] = useState<any[]>([]);
 
@@ -53,6 +55,12 @@ export default function TpcDashboardPage() {
     const loadStudents = async () => {
       try {
         const admin = getStudent();
+        // Redirect unauthorized users
+        if (!admin || admin.email !== 'tpc@lpu.in') {
+          router.push('/dashboard');
+          return;
+        }
+
         const collegeId = admin?.college_id || 'college-lpu-001';
         const data = await api.getStudents(collegeId);
         
