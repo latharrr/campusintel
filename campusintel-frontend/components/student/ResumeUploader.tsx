@@ -76,7 +76,13 @@ export default function ResumeUploader({
         setStatus('error');
       }
     } catch (err: any) {
-      setErrorMsg(`Error: ${err?.message || String(err)}`);
+      const msg = err?.message || String(err);
+      // Detect content-based rejection from backend
+      if (msg.includes("doesn't appear to be a resume") || msg.includes('not a resume') || msg.includes('empty or unreadable')) {
+        setErrorMsg(msg);
+      } else {
+        setErrorMsg(msg);
+      }
       setStatus('error');
     }
   };

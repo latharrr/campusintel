@@ -133,25 +133,60 @@ router.post('/upload-resume', async (req, res) => {
     if (!resumeText || resumeText.length < 50)
       return res.status(400).json({ error: 'PDF appears to be empty or unreadable' });
 
-    // ── Validate that the document is actually a resume/CV ──
-    const resumeKeywords = [
-      'experience', 'education', 'skills', 'project', 'university', 'college',
-      'degree', 'bachelor', 'master', 'intern', 'developer', 'engineer',
-      'objective', 'summary', 'certification', 'achievement', 'gpa', 'cgpa',
-      'resume', 'curriculum vitae', 'cv', 'contact', 'phone', 'email',
-      'linkedin', 'github', 'portfolio', 'technical', 'work',
-      'programming', 'language', 'framework', 'database', 'software',
-    ];
+    // ══════════════════════════════════════════════════════════════
+    // STRICT CV/RESUME VALIDATION — reject anything that isn't a CV
+    // ══════════════════════════════════════════════════════════════
     const lowerText = resumeText.toLowerCase();
-    const matchedKeywords = resumeKeywords.filter(kw => lowerText.includes(kw));
 
-    if (matchedKeywords.length < 3) {
-      console.warn(`[Resume] Rejected upload — only ${matchedKeywords.length} resume keywords found: [${matchedKeywords.join(', ')}]`);
+    // Category-based scoring: a real resume must hit MULTIPLE categories
+    const categories = {
+      identity: ['resume', 'curriculum vitae', 'cv', 'objective', 'summary', 'profile', 'about me'],
+      education: ['education', 'university', 'college', 'degree', 'bachelor', 'master', 'b.tech', 'b.e', 'm.tech', 'mca', 'bca', 'gpa', 'cgpa', 'semester', 'graduated', 'school', 'academic'],
+      professional: ['experience', 'work', 'intern', 'project', 'employment', 'company', 'role', 'responsibility', 'developer', 'engineer', 'analyst', 'designer', 'manager', 'freelance', 'trainee'],
+      skills: ['skills', 'technical', 'programming', 'language', 'framework', 'database', 'software', 'tools', 'technologies', 'proficiency', 'competencies', 'python', 'java', 'javascript', 'react', 'node', 'sql', 'html', 'css', 'c++', 'git'],
+      contact: ['email', 'phone', 'linkedin', 'github', 'portfolio', 'contact', 'address', 'mobile', '@'],
+    };
+
+    const categoryHits = {};
+    let totalHits = 0;
+    for (const [cat, keywords] of Object.entries(categories)) {
+      const hits = keywords.filter(kw => lowerText.includes(kw));
+      categoryHits[cat] = hits.length;
+      totalHits += hits.length;
+    }
+
+    const categoriesMatched = Object.values(categoryHits).filter(count => count > 0).length;
+
+    // Anti-patterns: documents that are NOT resumes
+    const antiKeywords = [
+      'invoice', 'receipt', 'bill', 'payment', 'order', 'purchase',
+      'assignment', 'question paper', 'exam', 'answer key', 'marks',
+      'chapter', 'textbook', 'isbn', 'table of contents',
+      'terms and conditions', 'privacy policy', 'agreement', 'contract',
+      'slide', 'presentation', 'agenda', 'minutes of meeting',
+      'prescription', 'diagnosis', 'patient',
+      'ticket', 'boarding pass', 'itinerary',
+    ];
+    const antiHits = antiKeywords.filter(kw => lowerText.includes(kw));
+
+    // REJECT if: too few category matches, or anti-patterns detected
+    if (categoriesMatched < 3 || totalHits < 6) {
+      console.warn(`[Resume] REJECTED — categories=${categoriesMatched}/5, totalHits=${totalHits}, matched: ${JSON.stringify(categoryHits)}`);
       return res.status(400).json({
-        error: 'This doesn\'t appear to be a resume/CV. Please upload your actual resume PDF containing your education, skills, and experience.',
+        error: 'This document does not appear to be a CV/Resume. A valid resume must contain your education, skills, and work experience. Please upload your actual CV.',
         success: false,
       });
     }
+
+    if (antiHits.length >= 2) {
+      console.warn(`[Resume] REJECTED — anti-patterns found: [${antiHits.join(', ')}]`);
+      return res.status(400).json({
+        error: `This looks like a ${antiHits[0]} document, not a resume. Please upload only your CV/Resume PDF.`,
+        success: false,
+      });
+    }
+
+    console.log(`[Resume] ACCEPTED — categories=${categoriesMatched}/5, totalHits=${totalHits}`);
 
     // Extract skills using Grok
     let skills;
