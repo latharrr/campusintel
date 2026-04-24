@@ -133,6 +133,26 @@ router.post('/upload-resume', async (req, res) => {
     if (!resumeText || resumeText.length < 50)
       return res.status(400).json({ error: 'PDF appears to be empty or unreadable' });
 
+    // ── Validate that the document is actually a resume/CV ──
+    const resumeKeywords = [
+      'experience', 'education', 'skills', 'project', 'university', 'college',
+      'degree', 'bachelor', 'master', 'intern', 'developer', 'engineer',
+      'objective', 'summary', 'certification', 'achievement', 'gpa', 'cgpa',
+      'resume', 'curriculum vitae', 'cv', 'contact', 'phone', 'email',
+      'linkedin', 'github', 'portfolio', 'technical', 'work',
+      'programming', 'language', 'framework', 'database', 'software',
+    ];
+    const lowerText = resumeText.toLowerCase();
+    const matchedKeywords = resumeKeywords.filter(kw => lowerText.includes(kw));
+
+    if (matchedKeywords.length < 3) {
+      console.warn(`[Resume] Rejected upload — only ${matchedKeywords.length} resume keywords found: [${matchedKeywords.join(', ')}]`);
+      return res.status(400).json({
+        error: 'This doesn\'t appear to be a resume/CV. Please upload your actual resume PDF containing your education, skills, and experience.',
+        success: false,
+      });
+    }
+
     // Extract skills using Grok
     let skills;
     try {

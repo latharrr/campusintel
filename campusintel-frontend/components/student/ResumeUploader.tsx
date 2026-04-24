@@ -182,8 +182,11 @@ export default function ResumeUploader({
             </div>
           </div>
           {status === 'error' && (
-            <div className="text-xs text-red-400 bg-red-500/10 px-3 py-2 rounded-lg border border-red-500/30">
-              ⚠️ {errorMsg}
+            <div className="text-xs text-red-400 bg-red-500/10 px-4 py-3 rounded-xl border border-red-500/30 max-w-sm text-left">
+              <div className="flex items-center gap-2 font-semibold mb-1">
+                <span>🚫</span> Upload Rejected
+              </div>
+              <p>{errorMsg}</p>
             </div>
           )}
         </div>
