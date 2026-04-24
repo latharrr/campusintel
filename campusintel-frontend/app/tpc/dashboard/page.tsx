@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 import { getStudent } from '@/lib/auth';
+import TpcDashboard from '@/components/tpc/TpcDashboard';
 
 const STATES = ['UNAWARE', 'PROFILED', 'TARGETED', 'ASSESSED', 'PREPARING', 'INTERVIEW_READY'];
 
@@ -82,7 +83,7 @@ export default function TpcDashboardPage() {
           <div className="text-[10px] text-indigo-400 mt-0.5 uppercase tracking-wider">TPC Admin — LPU</div>
         </div>
         <nav className="flex-1 px-3 py-4 space-y-1">
-          {['📊 Overview', '👥 Students', '🏢 Drives', '🔔 Alerts', '📋 Reports'].map((item) => (
+          {['📊 Overview', '👥 Students', '🏢 Drives', '🔔 Alerts', '📋 Reports', '🧠 Agent Engine'].map((item) => (
             <div key={item} 
               onClick={() => setActiveTab(item)}
               className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm cursor-pointer transition ${
@@ -179,7 +180,7 @@ export default function TpcDashboardPage() {
                         <p className="text-[11px] text-[#6b7280]">{a.sub}</p>
                         <div className="flex gap-2 mt-3">
                           <button className="px-3 py-1 text-[10px] font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 transition">
-                            Schedule Session
+                            Send to Respective Department
                           </button>
                           <button className="px-3 py-1 text-[10px] rounded-lg border border-[#2a2a3d] text-[#6b7280] hover:bg-white/5 transition">
                             Dismiss
@@ -360,7 +361,7 @@ export default function TpcDashboardPage() {
                       </p>
                       <p className="text-xs text-[#6b7280]">{a.sub}</p>
                       <div className="flex gap-2 mt-4">
-                        <button className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 transition">Take Action</button>
+                        <button className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 text-white hover:bg-indigo-500 transition">Send to Respective Department</button>
                         <button className="px-3 py-1.5 text-xs rounded-lg border border-[#2a2a3d] text-[#6b7280] hover:bg-white/5 transition">Dismiss</button>
                       </div>
                     </div>
@@ -475,6 +476,14 @@ export default function TpcDashboardPage() {
                   ))}
                 </div>
               </div>
+            </div>
+          ) : activeTab === '🧠 Agent Engine' ? (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-100 fill-mode-both">
+              <div>
+                <h1 className="font-display text-3xl text-[#e8e6f8]">Agent Engine Controls</h1>
+                <p className="text-[#6b7280] text-sm mt-1">Monitor the live placement funnel, agent strategy weights, and system alerts.</p>
+              </div>
+              <TpcDashboard isDemoActive={false} contextName="Live Cohort" />
             </div>
           ) : null}
         </div>
